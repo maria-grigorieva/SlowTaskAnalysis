@@ -75,8 +75,11 @@ def pre_failed(df):
     frames = []
     for k,v in df.groupby('PANDAID'):
         v.sort_values(by=['MODIFTIME_EXTENDED'], ascending=True, inplace=True)
+        final_status = v[v['JOBSTATUS'] == 'failed']
+        final_status.rename(columns={"JOBSTATUS": "PRE-FAILED/FAILED"}, inplace=True)
+        frames.append(final_status)
         v.drop(v[v['JOBSTATUS'] == 'failed'].index, inplace=True)
-        v.rename(columns={"JOBSTATUS": "PRE-FAILED STATUS"}, inplace=True)
+        v.rename(columns={"JOBSTATUS": "PRE-FAILED/FAILED"}, inplace=True)
         frames.append(v.iloc[[-1]])
     return pd.concat(frames)
 
