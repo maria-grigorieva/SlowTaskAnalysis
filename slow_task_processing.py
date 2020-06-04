@@ -3,6 +3,7 @@ import pandas as pd
 import cx_Oracle
 import configparser
 import argparse
+from collections import OrderedDict
 import sys
 
 # required libraries
@@ -60,6 +61,11 @@ def statuses_duration(df):
        v['START_TS'] = pd.to_datetime(v['MODIFTIME_EXTENDED'])
        v['END_TS'] = v['START_TS'].shift(-1).fillna(v['START_TS'])
        v['DURATION'] = (v['END_TS'] - v['START_TS']).dt.total_seconds()/60./60.
+       status_sequence = v['JOBSTATUS'].values.tolist()
+       sequence_set = list(OrderedDict.fromkeys(status_sequence))
+       v['STATUS_LEVEL'] = v.apply(lambda x: get_seq_level(x['JOBSTATUS'], sequence_set), axis=1)
+       v['SEQUENCE'] = str(sequence_set)
+       #v['HASH_SEQUENCE'] = str(hash(str(status_sequence)))
        frames.append(v)
    return pd.concat(frames).sort_values(by=['PANDAID',
                                             'MODIFTIME_EXTENDED',
@@ -117,6 +123,18 @@ def get_slowest_user_tasks(connection, start_time, end_time):
                                                                    ascending=False).head(100)
 
 
+def get_seq_level(status, sequence_set):
+    for i,x in enumerate(sequence_set):
+        if status == x:
+            return i
+
+
+def sequences_of_statuses(jeditaskid, df):
+    groups = df.groupby('SEQUENCE')
+    for k,v in groups:
+        v.to_csv(f"{jeditaskid}_sequence_{k}.csv")
+
+
 def main(jeditaskid, limit=400):
     CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
     connection = get_db_connection(CONN_STR)
@@ -128,6 +146,7 @@ def main(jeditaskid, limit=400):
     convert_to_csv(pre_failed_statuses, f"{jeditaskid}-pre-failed.csv")
     convert_to_csv(slowest_statuses, f"{jeditaskid}-slowest-{limit}.csv")
     convert_to_csv(statuses, f"{jeditaskid}_all.csv")
+    sequences_of_statuses(jeditaskid, statuses)
 
 
 
