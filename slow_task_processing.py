@@ -73,15 +73,25 @@ def pre_failed(df):
     return pd.concat(frames)
 
 
-def main(jeditaskid):
+def convert_to_csv(df, filename):
+    df.to_csv(filename)
+
+
+def main(jeditaskid, output_mode='s', fname=None):
     CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
-    result = pre_failed(statuses_duration(jobs_with_statuses(CONN_STR, jeditaskid)))
-    print(result)
+    if output_mode == 'stream':
+        return pre_failed(statuses_duration(jobs_with_statuses(CONN_STR, jeditaskid)))
+    elif output_mode == 'file':
+        convert_to_csv(pre_failed(statuses_duration(jobs_with_statuses(CONN_STR, jeditaskid))),fname)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('jeditaskid', metavar='N', type=int)
+    parser.add_argument('jeditaskid', type=int)
+    list_of_choices = ["stream", "file"]
+    parser.add_argument('output_mode', type=str, choices=list_of_choices)
+    parser.add_argument('fname', type=str)
+    args = parser.parse_args()
 
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -92,5 +102,4 @@ if __name__ == "__main__":
         'psw': config['ORACLE']['pwd'],
         'service': config['ORACLE']['service'],
     }
-    args = parser.parse_args()
-    main(args.jeditaskid)
+    main(args.jeditaskid, args.output_mode, args.fname)
