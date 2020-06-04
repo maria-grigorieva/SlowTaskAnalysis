@@ -11,7 +11,15 @@ import sys
 # libclntshcore.dylib.19.1
 
 
-def jobs_with_statuses(conn_str,
+def get_db_connection(conn_str):
+    try:
+        conn = cx_Oracle.connect(conn_str)
+        return conn
+    except Exception as e:
+        print('Connection to Oracle failed')
+
+
+def jobs_with_statuses(connection,
                            taskid):
     """
     Get failed jobs with all interim statuses
@@ -20,8 +28,6 @@ def jobs_with_statuses(conn_str,
     :return:
     """
     try:
-        connection = cx_Oracle.connect(conn_str)
-        print(connection)
         cursor = connection.cursor()
         query = \
             "SELECT s.pandaid, s.modiftime_extended, " \
@@ -56,8 +62,8 @@ def statuses_duration(df):
        v['DURATION'] = (v['END_TS'] - v['START_TS']).dt.total_seconds()/60./60.
        frames.append(v)
    return pd.concat(frames).sort_values(by=['PANDAID',
-    'MODIFTIME_EXTENDED',
-    'JOBSTATUS'])
+                                            'MODIFTIME_EXTENDED',
+                                            'JOBSTATUS'])
 
 
 def pre_failed(df):
@@ -68,29 +74,67 @@ def pre_failed(df):
     """
     frames = []
     for k,v in df.groupby('PANDAID'):
-        v.sort_values(by=['MODIFTIME_EXTENDED'], inplace=True)
-        frames.append(v.iloc[[-2]])
+        v.sort_values(by=['MODIFTIME_EXTENDED'], ascending=True, inplace=True)
+        v.drop(v[v['JOBSTATUS'] == 'failed'].index, inplace=True)
+        v.rename(columns={"JOBSTATUS": "PRE-FAILED STATUS"}, inplace=True)
+        frames.append(v.iloc[[-1]])
     return pd.concat(frames)
+
+
+def get_slowest_job_statuses(df, limit=400):
+    return df.sort_values(by=['DURATION'], ascending=False).head(limit)
 
 
 def convert_to_csv(df, filename):
     df.to_csv(filename)
 
 
-def main(jeditaskid, output_mode='s', fname=None):
+def get_slowest_user_tasks(connection, start_time, end_time):
+    """
+    2020-04-01 10:40:00
+    :param start_time:
+    :param end_time:
+    :return:
+    """
+    cursor = connection.cursor()
+    query = \
+        "SELECT taskid," \
+        "(TRUNC(endtime,'HH24') - " \
+        "TRUNC(start_time,'HH24')) as duration " \
+        "FROM ATLAS_DEFT.T_PRODUCTION_TASK " \
+        "WHERE start_time >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
+        "AND start_time < to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
+        "AND status in ('done','finished') " \
+        "AND prodsourcelabel = 'user' " \
+        "AND start_time IS NOT NULL " \
+        "AND endtime IS NOT NULL " \
+        "ORDER BY duration desc".format(start_time, end_time)
+    return pd.DataFrame([row for row in cursor.execute(query)],
+                        columns=['taskid','duration']).sort_values(by='duration',
+                                                                   ascending=False).head(100)
+
+
+def main(jeditaskid, limit=400):
     CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
-    if output_mode == 'stream':
-        return pre_failed(statuses_duration(jobs_with_statuses(CONN_STR, jeditaskid)))
-    elif output_mode == 'file':
-        convert_to_csv(pre_failed(statuses_duration(jobs_with_statuses(CONN_STR, jeditaskid))),fname)
+    connection = get_db_connection(CONN_STR)
+    # get_slowest_user_tasks(connection, '2020-05-01 00:00:00',
+    #                        '2020-05-30 00:00:00').to_csv('slowest_tasks_may2020.csv')
+    statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
+    pre_failed_statuses = pre_failed(statuses)
+    slowest_statuses = get_slowest_job_statuses(statuses, limit)
+    convert_to_csv(pre_failed_statuses, f"{jeditaskid}-pre-failed.csv")
+    convert_to_csv(slowest_statuses, f"{jeditaskid}-slowest-{limit}.csv")
+    convert_to_csv(statuses, f"{jeditaskid}_all.csv")
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('jeditaskid', type=int)
-    list_of_choices = ["stream", "file"]
-    parser.add_argument('output_mode', type=str, choices=list_of_choices)
-    parser.add_argument('fname', type=str)
+    parser.add_argument('limit', type=int)
+    # list_of_choices = ["stream", "file"]
+    # parser.add_argument('output_mode', type=str, choices=list_of_choices)
+    # parser.add_argument('fname', type=str)
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -102,4 +146,4 @@ if __name__ == "__main__":
         'psw': config['ORACLE']['pwd'],
         'service': config['ORACLE']['service'],
     }
-    main(args.jeditaskid, args.output_mode, args.fname)
+    main(args.jeditaskid, args.limit)
