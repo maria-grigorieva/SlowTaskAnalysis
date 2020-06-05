@@ -65,7 +65,6 @@ def statuses_duration(df):
        sequence_set = list(OrderedDict.fromkeys(status_sequence))
        v['STATUS_LEVEL'] = v.apply(lambda x: get_seq_level(x['JOBSTATUS'], sequence_set), axis=1)
        v['SEQUENCE'] = str(sequence_set)
-       #v['HASH_SEQUENCE'] = str(hash(str(status_sequence)))
        frames.append(v)
    return pd.concat(frames).sort_values(by=['PANDAID',
                                             'MODIFTIME_EXTENDED',
@@ -81,11 +80,9 @@ def pre_failed(df):
     frames = []
     for k,v in df.groupby('PANDAID'):
         v.sort_values(by=['MODIFTIME_EXTENDED'], ascending=True, inplace=True)
-        final_status = v[v['JOBSTATUS'] == 'failed']
-        final_status.rename(columns={"JOBSTATUS": "PRE-FAILED/FAILED"}, inplace=True)
-        frames.append(final_status)
         v.drop(v[v['JOBSTATUS'] == 'failed'].index, inplace=True)
-        v.rename(columns={"JOBSTATUS": "PRE-FAILED/FAILED"}, inplace=True)
+        v.rename(columns={"JOBSTATUS": "PRE-FAILED"}, inplace=True)
+        v['FINAL_STATUS'] = 'failed'
         frames.append(v.iloc[[-1]])
     return pd.concat(frames)
 
