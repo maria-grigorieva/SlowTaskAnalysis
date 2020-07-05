@@ -1,0 +1,83 @@
+{% block parcoords-scripts %}
+<script>
+function GetIDinfo(id){
+    var time = Date.now();
+
+    const value = parseInt(id);
+
+    if (isNaN(value)) {
+        alert('Please enter an integer value of the task ID');
+        return;
+    }
+
+    $('.first-page-element').hide();
+    $('.loading').show();
+    document.title = value + ' -  Parallel Coordinates';
+
+    $.ajax({
+        url: '{% url "request_db" %}',
+        data: { 'jeditaskid': value },
+        dataType: 'json',
+        success: (data) => BuildParCoords(data)
+      });
+}
+
+function BuildParCoords(data) {
+    $('#first-page').hide();
+    $('#after-load').show();
+    $('#taskid_header').text('TaskID = ' + data.jeditaskid + ' (failed jobs statuses exploration)');
+
+    {# let statuses = data.statuses; #}
+    let scouts = data.scouts;
+    let failed = data.failed;
+    let finished = data.finished;
+    {# let closed = data.closed; #}
+    let pre_failed = data.pre_failed;
+    {# let sequences = data.sequences;#}
+
+    let options = {
+        draw: {                     // Draw options
+            mode: "cluster",        // Draw mode: print (no colors) or cluster (with colors)
+            parts_visible:          // Visible parts of the diagram
+            {
+                cluster_table: true,
+                hint: false,
+                selector: true,
+                table: true,
+                table_colvis: true
+            }
+        },
+        skip: {                     // Feature skip options
+            dims: {
+            mode: "show",           // Skip mode: show, hide, none
+                strict_naming: true,
+                values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
+                    'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR_CODE']   // Features to be shown on diagram by default
+            }
+        },
+        worker: {
+            enabled: true,
+            offscreen: false
+        }
+    };
+
+    let scouts_pc = new ParallelCoordinates("scouts_pc",
+        scouts['columns'], scouts['data'], 'JOBSTATUS', null, options);
+
+    let failed_pc = new ParallelCoordinates("failed_pc",
+        failed['columns'], failed['data'], 'JOBSTATUS', null, options);
+
+    let finished_pc = new ParallelCoordinates("finished_pc",
+        finished['columns'], finished['data'], 'JOBSTATUS', null, options);
+
+    {# let closed_pc = new ParallelCoordinates("closed_pc",#}
+    {#     closed['columns'], closed['data'], 'JOBSTATUS', null, options);#}
+
+    {# let all_failed_pc = new ParallelCoordinates("all_failed_pc",#}
+    {#     statuses['columns'], statuses['data'], 'JOBSTATUS', null, options);#}
+
+    let pre_failed_pc = new ParallelCoordinates("pre_failed_pc",
+        pre_failed['columns'], pre_failed['data'], 'PRE-FAILED', null, options);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'index.html' %}
+
+{% block preselected-id %}
+<script>
+    $('#jeditaskid_input').val('{{ jeditaskid }}');
+    $('#jeditaskid_button').click();
+</script>
+{% endblock %}

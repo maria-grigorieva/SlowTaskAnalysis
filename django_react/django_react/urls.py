@@ -15,9 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
+from django.conf.urls import url
 from TaskStatus import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('task/<int:jeditaskid>/', views.index),
+    path('task/', views.parcoords_placeholder),
+    url('ajax/request_db', views.request_db, name='request_db'),
+    path('task/<int:jeditaskid>/', views.parcoords_preselected),
 ]

@@ -11,6 +11,7 @@ from imblearn.under_sampling import TomekLinks, ClusterCentroids
 from kmodes.kprototypes import KPrototypes
 from kmodes.kmodes import KModes
 from kmodes.util.dissim import matching_dissim
+from django.http import JsonResponse
 
 from rest_framework import generics
 from rest_framework import views
@@ -52,45 +53,86 @@ CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
 #     return Response(results)
 
 
-def index(request, jeditaskid):
-    connection = get_db_connection(CONN_STR)
-    statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
+def parcoords_placeholder(requset):
+    """
+    Renders a page asking to enter an ID
+    """
+    return render(requset, 'index.html')
 
-    min_time, max_time = task_time_range(connection, jeditaskid)
-    task_sites = get_task_sites(connection, jeditaskid)
-    efficiency = sites_efficiency(connection, min_time, max_time, task_sites)
 
-    print("Initial size: {}".format(statuses.shape))
+def parcoords_preselected(requset, jeditaskid):
+    """
+    Renders a page with a pre-entered ID, immediately starting the search
+    """
+    return render(requset, 'index-preselected.html', {'jeditaskid': jeditaskid})
 
-    statuses = pd.merge(statuses, efficiency,
+
+def request_db(request):
+    """
+    AJAX backend to process the ID and give back the result
+    """
+    jeditaskid = request.GET.get('jeditaskid', None)
+    return JsonResponse(calculate_data(jeditaskid))
+
+
+def calculate_data(jeditaskid):
+    """
+    Check the input, make a request to Oracle and process the result
+    """
+    result = {}
+
+    try:
+        jeditaskid = int(jeditaskid)
+    except ValueError:
+        result = {'error': 'id should be an integer'}
+
+    if (not isinstance(jeditaskid, int)):
+        result = {'error': 'id should be an integer'}
+    else:
+        connection = get_db_connection(CONN_STR)
+        statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
+
+        min_time, max_time = task_time_range(connection, jeditaskid)
+        task_sites = get_task_sites(connection, jeditaskid)
+        efficiency = sites_efficiency(connection, min_time, max_time, task_sites)
+
+        print("Initial size: {}".format(statuses.shape))
+
+        statuses = pd.merge(statuses, efficiency,
                             how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
 
-    print("After merge: {}".format(statuses.shape))
+        print("After merge: {}".format(statuses.shape))
 
-    scouts = statuses[statuses['IS_SCOUT']=='SCOUT']
-    not_scouts = statuses[statuses['IS_SCOUT'] == 'NOT_SCOUT']
-    finished = not_scouts[not_scouts['FINAL_STATUS'] == 'finished']
-    # closed = not_scouts[not_scouts['FINAL_STATUS'] == 'closed']
-    failed = not_scouts[not_scouts['FINAL_STATUS'] == 'failed']
+        scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
+        not_scouts = statuses[statuses['IS_SCOUT'] == 'NOT_SCOUT']
+        finished = not_scouts[not_scouts['FINAL_STATUS'] == 'finished']
+        # closed = not_scouts[not_scouts['FINAL_STATUS'] == 'closed']
+        failed = not_scouts[not_scouts['FINAL_STATUS'] == 'failed']
 
-    # sampled_statuses = pd.merge(sampled_statuses, efficiency,
-    #                         how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
-    pre_failed_statuses = pre_failed(failed)
-    #sequences = sequences_of_statuses(sampled_statuses)
-    #statuses = sampled_statuses.astype(str)
-    pre_failed_statuses = pre_failed_statuses.astype(str)
-    # _tmpl_sequences = {}
-    # for seq in sequences:
-    #     sequences[seq] = sequences[seq].astype(str)
-    #     _tmpl_sequences[seq] = sequences[seq].to_dict('split')
+        # sampled_statuses = pd.merge(sampled_statuses, efficiency,
+        #                         how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
+        pre_failed_statuses = pre_failed(failed)
+        # sequences = sequences_of_statuses(sampled_statuses)
+        # statuses = sampled_statuses.astype(str)
+        pre_failed_statuses = pre_failed_statuses.astype(str)
+        # _tmpl_sequences = {}
+        # for seq in sequences:
+        #     sequences[seq] = sequences[seq].astype(str)
+        #     _tmpl_sequences[seq] = sequences[seq].to_dict('split')
 
-    return render(request, 'index.html', {'pre_failed': pre_failed_statuses.to_dict('split'),
-                                          # # 'sequences': _tmpl_sequences,
-                                          'finished': finished.astype(str).to_dict('split'),
-                                          'failed': failed.astype(str).to_dict('split'),
-                                          # 'closed': closed.astype(str).to_dict('split'),
-                                          'scouts': scouts.astype(str).to_dict('split'),
-                                          'jeditaskid': jeditaskid})
+        result = {'pre_failed': pre_failed_statuses.to_dict('split'),
+                  # # 'sequences': _tmpl_sequences,
+                  'finished': finished.astype(str).to_dict('split'),
+                  'failed': failed.astype(str).to_dict('split'),
+                  # 'closed': closed.astype(str).to_dict('split'),
+                  'scouts': scouts.astype(str).to_dict('split'),
+                  'jeditaskid': jeditaskid}
+    return result
+
+
+def index(request, jeditaskid):
+    result = calculate_data(jeditaskid)
+    return render(request, 'index.html', result)
 #.sort_values(by=['DURATION'], ascending=False).head(10000)
 #
 # def slowest_tasks(request):
