@@ -13,7 +13,7 @@ body{
 	margin: 0px;
 }
 
-#first-page{
+#first-page-parcoords{
 	width:100%;
 
 	font-family: 'Lato', sans-serif;
@@ -29,7 +29,7 @@ body{
 	transform: translateY(-50%);
 }
 
-#first-page h1{
+#first-page-parcoords h1{
 	font-family: Source Code Pro, monospace;
 	font-size: 45px;
 	line-height: 48px;
@@ -37,22 +37,22 @@ body{
 	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
 }
 
-#first-page h3 {
+#first-page-parcoords h3 {
 	font-family: Source Code Pro, monospace;
 	margin-bottom: 5px;
 }
 
-#first-page p{
+#first-page-parcoords p{
 	left: 25%;
 	max-width: 50%;
 	position: relative;
 }
 
-#first-page p span{
+#first-page-parcoords p span{
 	vertical-align: super;
 }
 
-#first-page p:last-of-type{
+#first-page-parcoords p:last-of-type{
 	margin-bottom: 75px;
 }
 
@@ -69,28 +69,30 @@ body{
 	color: white;
 }
 
-#after-load{
+#after-load-parcoords{
 	font-family: 'Lato', sans-serif;
 	display: none;
 	color: white;
-	height: 100%;
+	height: calc(100% - 79px);
 	overflow: auto;
 	text-align: center;
 	flex-direction: column;
+	position: absolute;
+	width: 100%;
 }
 
-#after-load::after {
-	height: 1px;
-	content: '�';
-	opacity: 0;
+#header{
+	font-family: 'Lato', sans-serif;
+	color: white;
+	height: 79px;
 }
 
-#after-load hr{
+#header hr{
 	background-image: -webkit-linear-gradient(left, #000046, #8c8b8b, #000046);
 	background-image: -moz-linear-gradient(left, #000046, #8c8b8b, #000046);
 	background-image: -ms-linear-gradient(left, #000046, #8c8b8b, #000046);
 	background-image: -o-linear-gradient(left, #000046, #8c8b8b, #000046);
-	margin-bottom: 25px;
+	margin-bottom: 10px;
 	margin-top: 3px;
 	flex-shrink: 0;
 	height: 1px;
@@ -98,7 +100,7 @@ body{
 	border: 0;
 }
 
-#header{
+#header-content{
 	display: flex;
 	justify-content: space-between;
 	left: 20%;
@@ -106,15 +108,21 @@ body{
 	position: relative;
 }
 
-#header p{
+#header-content p{
 	text-align: end;
 }
 
-#header h1{
+#header-content h1{
 	text-align: start;
 	font-family: Source Code Pro, monospace;
 	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
 	margin-bottom: 0px;
+}
+
+#header-content::after {
+	height: 1px;
+	content: '�';
+	opacity: 0;
 }
 
 .pc-spa-contents{

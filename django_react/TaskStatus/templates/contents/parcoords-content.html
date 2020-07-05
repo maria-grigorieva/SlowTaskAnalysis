@@ -1,0 +1,75 @@
+{% load static %}
+<div id="first-page-parcoords">
+    <h1>Parallel Coordinates</h1>
+    <p>To show a set of points in an n-dimensional space, a backdrop is drawn consisting of n parallel lines,
+        typically vertical and equally spaced. A point in n-dimensional space is represented as a polyline with
+        vertices on the parallel axes; the position of the vertex on the i-th axis corresponds to the i-th
+        coordinate of the point.
+        <br><br>
+    </p>
+
+    <p>
+        <span>More info about the project can be found at GitHub:</span>
+        <a href="https://github.com/PanDAWMS/InVEx-ParCoords-SA">
+            <img src="{%  static 'images/github-logo.png' %}" alt="GitHub repo link" style="height:25px">
+        </a>
+    </p>
+
+    <div class="loading">
+        <div id="taskid-selector">
+            Please enter a JediTaskID here and press the button.
+            <br><br>
+
+            <input type="number" required="" name="Task ID" id="jeditaskid_input" autofocus="">
+            <button type="button" id="jeditaskid_button" onclick="GetIDinfo(
+                document.getElementById('jeditaskid_input').value)">Request data</button>
+        </div>
+
+        <div class="pc-loading">
+            Please wait while the data is loading...
+        </div>
+    </div>
+</div>
+
+<div id="after-load-parcoords">
+    <div class="pc-spa-contents">
+        <h1 id="taskid_header"></h1>
+        Jump to: <br>
+        <a href="#scouts">Scouts</a> <br>
+        <a href="#finished">Finished</a> <br>
+        {# <a href="#closed">Closed</a> <br> #}
+        <a href="#failed">Failed</a> <br>
+        {# <a href="#all_failed">All Failed</a> <br> #}
+        <a href="#pre_failed">Pre-Failed</a> <br>
+    </div>
+
+    <div id="scouts" class="pc-spa-contents">
+        <h1>Scouts</h1>
+        <div id="scouts_pc"></div>
+    </div>
+
+    <div id="finished" class="pc-spa-contents">
+        <h1>Finished</h1>
+        <div id="finished_pc"></div>
+    </div>
+
+    {# <div id="closed" class="pc-spa-contents"> #}
+    {#    <h1>Closed</h1>#}
+    {#	<div id="closed_pc"></div>#}
+    {# </div> #}
+
+    <div id="failed" class="pc-spa-contents">
+        <h1>Failed</h1>
+        <div id="failed_pc"></div>
+    </div>
+
+    {# <div id="all_failed" class="pc-spa-contents"> #}
+    {#    <h1>All Failed Statuses</h1>#}
+    {#	<div id="all_failed_pc"></div>#}
+    {# </div> #}
+
+    <div id="pre_failed" class="pc-spa-contents">
+        <h1>Pre-Failed Statuses</h1>
+        <div id="pre_failed_pc"></div>
+    </div>
+</div>
