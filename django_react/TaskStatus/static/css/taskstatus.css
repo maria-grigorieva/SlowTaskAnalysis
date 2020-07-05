@@ -69,15 +69,6 @@ body{
 	color: white;
 }
 
-.first-page-element p{
-	margin: 5px 0px 5px 0px;
-	cursor: pointer;
-}
-
-.first-page-element p:hover {
-	text-decoration: underline;
-}
-
 #after-load{
 	font-family: 'Lato', sans-serif;
 	display: none;
@@ -146,13 +137,17 @@ body{
 }
 
 .loading{
-	width: 300px;
-	display: none;
+	width: 500px;
 	margin-left: auto;
 	margin-right: auto;
 	background: white;
 	color: black;
-	padding: 5px 15px 15px 15px;
+	padding: 15px;
 	border-radius: 15px;
 	box-shadow: 0 0 5px 10px #1CB5E0;
+}
+
+.loading .pc-loading{
+	margin-top: 0px;
+	display: none;
 }

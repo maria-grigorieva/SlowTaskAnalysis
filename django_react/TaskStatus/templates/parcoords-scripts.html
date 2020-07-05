@@ -1,8 +1,6 @@
 {% block parcoords-scripts %}
 <script>
 function GetIDinfo(id){
-    var time = Date.now();
-
     const value = parseInt(id);
 
     if (isNaN(value)) {
@@ -10,19 +8,25 @@ function GetIDinfo(id){
         return;
     }
 
-    $('.first-page-element').hide();
-    $('.loading').show();
+    $('#taskid-selector').hide();
+    $('.pc-loading').show();
     document.title = value + ' -  Parallel Coordinates';
 
     $.ajax({
         url: '{% url "request_db" %}',
         data: { 'jeditaskid': value },
         dataType: 'json',
-        success: (data) => BuildParCoords(data)
+        success: (data) => BuildParCoords(data),
+        error: (error) => RequestError('There was an error: ' + error)
       });
 }
 
 function BuildParCoords(data) {
+    if (data.hasOwnProperty('error')){
+        RequestError(data.error);
+        return;
+    }
+
     $('#first-page').hide();
     $('#after-load').show();
     $('#taskid_header').text('TaskID = ' + data.jeditaskid + ' (failed jobs statuses exploration)');
@@ -78,6 +82,15 @@ function BuildParCoords(data) {
 
     let pre_failed_pc = new ParallelCoordinates("pre_failed_pc",
         pre_failed['columns'], pre_failed['data'], 'PRE-FAILED', null, options);
+}
+
+function RequestError(error){
+    $('.pc-loading')
+        .html(error)
+        .css({'background-image': 'none', 'padding-left': '0px'});
+
+    $('.loading')
+        .css('background', 'lightpink');
 }
 </script>
 {% endblock %}

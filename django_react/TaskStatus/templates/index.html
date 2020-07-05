@@ -30,16 +30,18 @@
                 </a>
             </p>
 
-            <div class="first-page-element">
-                Please enter a JediTaskID here and press the button.
-                <br><br>
 
-                <input type="number" required="" name="Task ID" id="jeditaskid_input" autofocus="">
-                <button type="button" id="jeditaskid_button" onclick="GetIDinfo(
-                    document.getElementById('jeditaskid_input').value)">Request data</button>
-            </div>
 
             <div class="loading">
+                <div id="taskid-selector">
+                    Please enter a JediTaskID here and press the button.
+                    <br><br>
+
+                    <input type="number" required="" name="Task ID" id="jeditaskid_input" autofocus="">
+                    <button type="button" id="jeditaskid_button" onclick="GetIDinfo(
+                        document.getElementById('jeditaskid_input').value)">Request data</button>
+                </div>
+
                 <div class="pc-loading">
                     Please wait while the data is loading...
                 </div>
@@ -56,22 +58,22 @@
         {% block preselected-id %}
         {% endblock %}
 
-    {#    <h1>Sequences of statuses:</h1>#}
-    {#    {% for key, values in sequences.items %}#}
-    {#        <h2>{{ key | safe }}</h2>#}
-    {#        {% with y=forloop.counter|stringformat:"s" %}#}
-    {#            <div id={{ "seq_"|add:y }}></div>#}
-    {#        {% endwith %}#}
-    {#    {% endfor %}#}
-    {##}
-    {#    <script>#}
-    {#    seq_counter = 0;#}
-    {#    for (var key in sequences) {#}
-    {#        seq_counter += 1;#}
-    {#        var x = new ParallelCoordinates('seq_'+seq_counter,sequences[key]['columns'],#}
-    {#                    sequences[key]['data'],'JOBSTATUS',null);#}
-    {#        x.options.draw.mode = "cluster";#}
-    {#    }#}
-    {#	</script>#}
+        {#    <h1>Sequences of statuses:</h1>#}
+        {#    {% for key, values in sequences.items %}#}
+        {#        <h2>{{ key | safe }}</h2>#}
+        {#        {% with y=forloop.counter|stringformat:"s" %}#}
+        {#            <div id={{ "seq_"|add:y }}></div>#}
+        {#        {% endwith %}#}
+        {#    {% endfor %}#}
+        {##}
+        {#    <script>#}
+        {#    seq_counter = 0;#}
+        {#    for (var key in sequences) {#}
+        {#        seq_counter += 1;#}
+        {#        var x = new ParallelCoordinates('seq_'+seq_counter,sequences[key]['columns'],#}
+        {#                    sequences[key]['data'],'JOBSTATUS',null);#}
+        {#        x.options.draw.mode = "cluster";#}
+        {#    }#}
+        {#	</script>#}
     </body>
 </html>

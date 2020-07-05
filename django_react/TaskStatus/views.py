@@ -85,48 +85,54 @@ def calculate_data(jeditaskid):
         jeditaskid = int(jeditaskid)
     except ValueError:
         result = {'error': 'id should be an integer'}
+        print('Error! Function "calculate_data" got not an integer input.')
 
     if (not isinstance(jeditaskid, int)):
         result = {'error': 'id should be an integer'}
+        print('Error! Function "calculate_data" got not an integer input.')
     else:
-        connection = get_db_connection(CONN_STR)
-        statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
+        try:
+            connection = get_db_connection(CONN_STR)
+            statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
 
-        min_time, max_time = task_time_range(connection, jeditaskid)
-        task_sites = get_task_sites(connection, jeditaskid)
-        efficiency = sites_efficiency(connection, min_time, max_time, task_sites)
+            min_time, max_time = task_time_range(connection, jeditaskid)
+            task_sites = get_task_sites(connection, jeditaskid)
+            efficiency = sites_efficiency(connection, min_time, max_time, task_sites)
 
-        print("Initial size: {}".format(statuses.shape))
+            print("Initial size: {}".format(statuses.shape))
 
-        statuses = pd.merge(statuses, efficiency,
-                            how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
+            statuses = pd.merge(statuses, efficiency,
+                                how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
 
-        print("After merge: {}".format(statuses.shape))
+            print("After merge: {}".format(statuses.shape))
 
-        scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
-        not_scouts = statuses[statuses['IS_SCOUT'] == 'NOT_SCOUT']
-        finished = not_scouts[not_scouts['FINAL_STATUS'] == 'finished']
-        # closed = not_scouts[not_scouts['FINAL_STATUS'] == 'closed']
-        failed = not_scouts[not_scouts['FINAL_STATUS'] == 'failed']
+            scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
+            not_scouts = statuses[statuses['IS_SCOUT'] == 'NOT_SCOUT']
+            finished = not_scouts[not_scouts['FINAL_STATUS'] == 'finished']
+            # closed = not_scouts[not_scouts['FINAL_STATUS'] == 'closed']
+            failed = not_scouts[not_scouts['FINAL_STATUS'] == 'failed']
 
-        # sampled_statuses = pd.merge(sampled_statuses, efficiency,
-        #                         how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
-        pre_failed_statuses = pre_failed(failed)
-        # sequences = sequences_of_statuses(sampled_statuses)
-        # statuses = sampled_statuses.astype(str)
-        pre_failed_statuses = pre_failed_statuses.astype(str)
-        # _tmpl_sequences = {}
-        # for seq in sequences:
-        #     sequences[seq] = sequences[seq].astype(str)
-        #     _tmpl_sequences[seq] = sequences[seq].to_dict('split')
+            # sampled_statuses = pd.merge(sampled_statuses, efficiency,
+            #                         how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
+            pre_failed_statuses = pre_failed(failed)
+            # sequences = sequences_of_statuses(sampled_statuses)
+            # statuses = sampled_statuses.astype(str)
+            pre_failed_statuses = pre_failed_statuses.astype(str)
+            # _tmpl_sequences = {}
+            # for seq in sequences:
+            #     sequences[seq] = sequences[seq].astype(str)
+            #     _tmpl_sequences[seq] = sequences[seq].to_dict('split')
 
-        result = {'pre_failed': pre_failed_statuses.to_dict('split'),
-                  # # 'sequences': _tmpl_sequences,
-                  'finished': finished.astype(str).to_dict('split'),
-                  'failed': failed.astype(str).to_dict('split'),
-                  # 'closed': closed.astype(str).to_dict('split'),
-                  'scouts': scouts.astype(str).to_dict('split'),
-                  'jeditaskid': jeditaskid}
+            result = {'pre_failed': pre_failed_statuses.to_dict('split'),
+                      # # 'sequences': _tmpl_sequences,
+                      'finished': finished.astype(str).to_dict('split'),
+                      'failed': failed.astype(str).to_dict('split'),
+                      # 'closed': closed.astype(str).to_dict('split'),
+                      'scouts': scouts.astype(str).to_dict('split'),
+                      'jeditaskid': jeditaskid}
+        except Exception as e:
+            result = {'error': 'There was an error. ' + str(e)}
+            print('Error! Function "calculate_data" got an error: ' + str(e))
     return result
 
 
