@@ -8,7 +8,59 @@
         {% include "static/js.html" %}
         {% include "contents/duration-header.html" %}
 
-        <div id="taskanalysis-contents">
+        <div id="duration-contents">
+            <div class="duration-block duration-block-left">
+                <div class="parcoords-box">
+                    <p>Pick dates of start and finish.</p>
+                    <br>
+
+                    <label for="start">Start date:</label>
+
+                    <input type="date" id="start" name="trip-start"
+                           min="2018-01-01">
+                    <br><br>
+                    <label for="finish">Finish date:</label>
+
+                    <input type="date" id="finish" name="trip-finish"
+                           min="2018-01-01">
+
+                    <br>
+
+                    <button type="button" id="dates_button" onclick="DatesChosen()">Request data</button>
+                    <div class="pc-loading" id="dates_loading">
+                        Please wait...
+                    </div>
+
+                </div>
+            </div>
+            <div class="duration-block duration-block-right">
+                <div class="parcoords-box">
+                    A box plot here.
+                </div>
+                <div class="parcoords-box">
+                    A table with the slowest here. This is a sample in demonstration purposes.
+
+                    <br><br>
+
+                    <table id="slowest-tasks-list"></table>
+                </div>
+
+            </div>
+                <div id="duration-description" class="description-wrapper">
+                    <h1>Task Execution Analysis</h1>
+                    <p>Lorem ipsum tra-ta-ta. Please write a proper description.
+                        <br>
+                        Choose the dates on the left to make a request.
+                        <br><br>
+                    </p>
+
+                    <p>
+                        <span>More info about the project can be found at GitHub:</span>
+                        <a href="https://github.com/PanDAWMS/InVEx-ParCoords-SA">
+                            <img src="{%  static 'images/github-logo.png' %}" alt="GitHub repo link" style="height:25px">
+                        </a>
+                    </p>
+                </div>
 
         </div>
 
@@ -22,6 +74,7 @@
         <script>
             window.onload = function() {
                 $('#parcoords-contents').css({"opacity": "1", "left": "100vw"});
+                $('#duration-contents').css( {"left": "0", "opacity": "1"});
                 $('#header').css('opacity', '1');
             };
         </script>

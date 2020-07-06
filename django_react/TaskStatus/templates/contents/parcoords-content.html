@@ -1,5 +1,5 @@
 {% load static %}
-<div id="parcoords-first-page">
+<div id="parcoords-first-page" class="description-wrapper">
     <h1>Parallel Coordinates</h1>
     <p>To show a set of points in an n-dimensional space, a backdrop is drawn consisting of n parallel lines,
         typically vertical and equally spaced. A point in n-dimensional space is represented as a polyline with
@@ -25,7 +25,7 @@
                 document.getElementById('jeditaskid_input').value)">Request data</button>
         </div>
 
-        <div class="pc-loading">
+        <div class="pc-loading" id="parcoords-request-loading">
             Please wait while the data is loading...
         </div>
     </div>

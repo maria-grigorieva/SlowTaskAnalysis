@@ -82,9 +82,91 @@ body{
 	color: white;
 }
 
+/* Duration analysis */
+#duration-contents{
+	height: calc(100% - 79px);
+	width: 100%;
+	overflow: hidden;
+	position: absolute;
+	transition: all .5s ease;
+	opacity: 0;
+	left: 0;
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+}
+
+#duration-description{
+	width: 80%;
+	left: 20%;
+}
+
+.duration-block{
+	width:100%;
+	transition: flex 0.3s ease;
+}
+
+.duration-block-left{
+	flex: 0 0 20%;
+}
+
+.duration-block-left .pc-loading{
+	display: none;
+}
+
+.duration-block-right{
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+
+	flex: 1 1 60%;
+
+	transition: all 0.3s ease;
+	opacity: 0;
+}
+
+.duration-block-right .parcoords-box:nth-child(1) {
+	flex: 1 1 75%;
+}
+
+.duration-block-right .parcoords-box:nth-child(2) {
+	flex: 0 0 25%;
+}
+
+.duration-block .parcoords-box{
+	height: calc(100% - 49px);
+}
+
+.duration-img{
+	height: 15px;
+	width: 15px;
+	cursor: pointer;
+}
+
+.duration-img:not(:last-child){
+	margin-right:5px;
+}
+
+.img-hidden{
+	display: none;
+}
+
+.img-unclickable{
+	cursor: unset;
+}
+
+#slowest-tasks-list_wrapper .ui-button{
+    margin-bottom: 3px;
+	padding: 3px;
+}
+
+#slowest-tasks-list_length{
+	float: right;
+}
+
 /* Parallel Coordinates */
 #parcoords-contents{
-	height: 100%;
+	height: calc(100% - 79px);
 	width: 100%;
 	overflow: hidden;
 	position: absolute;
@@ -92,7 +174,7 @@ body{
 	opacity: 0.001;
 }
 
-#parcoords-first-page{
+.description-wrapper{
 	width:100%;
 
 	font-family: 'Lato', sans-serif;
@@ -101,6 +183,9 @@ body{
 
 	text-shadow: 2px 2px 3px rgba(255,255,255,0.1);
 
+	transition: all .5s ease;
+	opacity: 1;
+
 	margin: 0;
 	position: absolute;
 	top: 50%;
@@ -108,7 +193,7 @@ body{
 	transform: translateY(-50%);
 }
 
-#parcoords-first-page h1{
+.description-wrapper h1{
 	font-family: Source Code Pro, monospace;
 	font-size: 45px;
 	line-height: 48px;
@@ -116,22 +201,22 @@ body{
 	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
 }
 
-#parcoords-first-page h3 {
+.description-wrapper h3 {
 	font-family: Source Code Pro, monospace;
 	margin-bottom: 5px;
 }
 
-#parcoords-first-page p{
+.description-wrapper p{
 	left: 25%;
 	max-width: 50%;
 	position: relative;
 }
 
-#parcoords-first-page p span{
+.description-wrapper p span{
 	vertical-align: super;
 }
 
-#parcoords-first-page p:last-of-type{
+.description-wrapper p:last-of-type{
 	margin-bottom: 75px;
 }
 
@@ -139,7 +224,7 @@ body{
 	font-family: 'Lato', sans-serif;
 	display: none;
 	color: white;
-	height: calc(100% - 79px);
+	height: 100%;
 	overflow: auto;
 	text-align: center;
 	flex-direction: column;

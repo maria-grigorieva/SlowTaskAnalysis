@@ -90,11 +90,11 @@ def calculate_data(jeditaskid):
     try:
         jeditaskid = int(jeditaskid)
     except ValueError:
-        result = {'error': 'id should be an integer'}
+        result = {'error': 'id should be an integer', 'jeditaskid': jeditaskid}
         print('Error! Function "calculate_data" got not an integer input.')
 
     if (not isinstance(jeditaskid, int)):
-        result = {'error': 'id should be an integer'}
+        result = {'error': 'id should be an integer','jeditaskid': jeditaskid}
         print('Error! Function "calculate_data" got not an integer input.')
     else:
         try:
@@ -137,7 +137,7 @@ def calculate_data(jeditaskid):
                       'scouts': scouts.astype(str).to_dict('split'),
                       'jeditaskid': jeditaskid}
         except Exception as e:
-            result = {'error': 'There was an error. ' + str(e)}
+            result = {'error': 'There was an error. ' + str(e), 'jeditaskid': jeditaskid}
             print('Error! Function "calculate_data" got an error: ' + str(e))
     return result
 
