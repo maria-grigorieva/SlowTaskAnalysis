@@ -20,7 +20,12 @@ from TaskStatus import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('task/', views.parcoords_placeholder),
+
+    # Single task analysis
+    path('task/', views.task_index),
+    path('task/<int:jeditaskid>/', views.task_index_preselected),
     url('ajax/request_db', views.request_db, name='request_db'),
-    path('task/<int:jeditaskid>/', views.parcoords_preselected),
+
+    # Duration analysis
+    path('duration/', views.duration_index)
 ]

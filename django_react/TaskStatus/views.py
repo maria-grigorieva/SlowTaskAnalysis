@@ -53,19 +53,25 @@ CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
 #     return Response(results)
 
 
-def parcoords_placeholder(requset):
+def task_index(requset):
     """
     Renders a page asking to enter an ID
     """
-    return render(requset, 'index.html')
+    return render(requset, 'index-task.html')
 
 
-def parcoords_preselected(requset, jeditaskid):
+def task_index_preselected(requset, jeditaskid):
     """
     Renders a page with a pre-entered ID, immediately starting the search
     """
-    return render(requset, 'index-preselected.html', {'jeditaskid': jeditaskid})
+    return render(requset, 'index-task-preselected.html', {'jeditaskid': jeditaskid})
 
+
+def duration_index(requset):
+    """
+    Renders a page asking to enter the dates for tasks analysis
+    """
+    return render(requset, 'index-duration.html')
 
 def request_db(request):
     """
@@ -138,7 +144,7 @@ def calculate_data(jeditaskid):
 
 def index(request, jeditaskid):
     result = calculate_data(jeditaskid)
-    return render(request, 'index.html', result)
+    return render(request, 'index-duration.html', result)
 #.sort_values(by=['DURATION'], ascending=False).head(10000)
 #
 # def slowest_tasks(request):

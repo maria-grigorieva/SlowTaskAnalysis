@@ -1,0 +1,29 @@
+{% load static %}
+<html>
+    <head>
+        {% include "static/css.html" %}
+        <title>Task Duration Analysis</title>
+    </head>
+    <body>
+        {% include "static/js.html" %}
+        {% include "contents/duration-header.html" %}
+
+        <div id="taskanalysis-contents">
+
+        </div>
+
+        <div id="parcoords-contents">
+            {% include "contents/parcoords-content.html" %}
+
+            {% block preselected-id %}
+            {% endblock %}
+        </div>
+
+        <script>
+            window.onload = function() {
+                $('#parcoords-contents').css({"opacity": "1", "left": "100vw"});
+                $('#header').css('opacity', '1');
+            };
+        </script>
+    </body>
+</html>

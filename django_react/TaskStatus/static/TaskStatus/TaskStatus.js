@@ -1,3 +1,10 @@
+function ChangeTab(tab){
+    $(tab).parent().children().removeClass('header-button-selected');
+    $(tab).addClass('header-button-selected');
+
+    $('#parcoords-contents').css("left", (tab.id === 'header-taskanalysis')? "100vw":"0");
+}
+
 function GetIDinfo(id){
     const value = parseInt(id);
 
@@ -25,8 +32,9 @@ function BuildParCoords(data) {
         return;
     }
 
-    $('#first-page-parcoords').hide();
-    $('#after-load-parcoords').show();
+    $('#header').show();
+    $('#parcoords-first-page').hide();
+    $('#parcoords-after-load').show();
     $('#taskid_header').text('TaskID = ' + data.jeditaskid + ' (failed jobs statuses exploration)');
 
     this.parcoords = {
@@ -95,6 +103,6 @@ function RequestError(error){
         .html(error.toString())
         .css({'background-image': 'none', 'padding-left': '0px'});
 
-    $('.loading')
+    $('#data-loading')
         .css('background', 'lightpink');
 }

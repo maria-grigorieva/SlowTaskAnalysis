@@ -1,5 +1,5 @@
 {% load static %}
-<div id="first-page-parcoords">
+<div id="parcoords-first-page">
     <h1>Parallel Coordinates</h1>
     <p>To show a set of points in an n-dimensional space, a backdrop is drawn consisting of n parallel lines,
         typically vertical and equally spaced. A point in n-dimensional space is represented as a polyline with
@@ -15,7 +15,7 @@
         </a>
     </p>
 
-    <div class="loading">
+    <div id="data-loading">
         <div id="taskid-selector">
             Please enter a JediTaskID here and press the button.
             <br><br>
@@ -31,8 +31,8 @@
     </div>
 </div>
 
-<div id="after-load-parcoords">
-    <div class="pc-spa-contents">
+<div id="parcoords-after-load">
+    <div class="parcoords-box">
         <h1 id="taskid_header"></h1>
         Jump to: <br>
         <a href="#scouts">Scouts</a> <br>
@@ -43,32 +43,32 @@
         <a href="#pre_failed">Pre-Failed</a> <br>
     </div>
 
-    <div id="scouts" class="pc-spa-contents">
+    <div id="scouts" class="parcoords-box">
         <h1>Scouts</h1>
         <div id="scouts_pc"></div>
     </div>
 
-    <div id="finished" class="pc-spa-contents">
+    <div id="finished" class="parcoords-box">
         <h1>Finished</h1>
         <div id="finished_pc"></div>
     </div>
 
-    {# <div id="closed" class="pc-spa-contents"> #}
+    {# <div id="closed" class="parcoords-box"> #}
     {#    <h1>Closed</h1>#}
     {#	<div id="closed_pc"></div>#}
     {# </div> #}
 
-    <div id="failed" class="pc-spa-contents">
+    <div id="failed" class="parcoords-box">
         <h1>Failed</h1>
         <div id="failed_pc"></div>
     </div>
 
-    {# <div id="all_failed" class="pc-spa-contents"> #}
+    {# <div id="all_failed" class="parcoords-box"> #}
     {#    <h1>All Failed Statuses</h1>#}
     {#	<div id="all_failed_pc"></div>#}
     {# </div> #}
 
-    <div id="pre_failed" class="pc-spa-contents">
+    <div id="pre_failed" class="parcoords-box">
         <h1>Pre-Failed Statuses</h1>
         <div id="pre_failed_pc"></div>
     </div>

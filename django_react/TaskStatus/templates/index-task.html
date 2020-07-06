@@ -6,7 +6,7 @@
     </head>
     <body>
         {% include "static/js.html" %}
-        {% include "contents/header.html" %}
+        {% include "contents/task-header.html" %}
 
         <div id="parcoords-contents">
             {% include "contents/parcoords-content.html" %}
@@ -14,6 +14,13 @@
             {% block preselected-id %}
             {% endblock %}
         </div>
+
+        <script>
+            window.onload = function() {
+                $('#parcoords-contents').css({"opacity": "1", "left": "0"});
+                $('#header').hide().css('opacity', '1');
+            };
+        </script>
         {#    <h1>Sequences of statuses:</h1>#}
         {#    {% for key, values in sequences.items %}#}
         {#        <h2>{{ key | safe }}</h2>#}

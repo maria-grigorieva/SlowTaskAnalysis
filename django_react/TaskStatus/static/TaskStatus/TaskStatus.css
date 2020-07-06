@@ -1,3 +1,4 @@
+/* Page background */
 html{
 	background: #000046;  /* fallback for old browsers */
 	background: -webkit-linear-gradient(to top, #1CB5E0, #000046);  /* Chrome 10-25, Safari 5.1-6 */
@@ -13,78 +14,13 @@ body{
 	margin: 0px;
 }
 
-#first-page-parcoords{
-	width:100%;
-
-	font-family: 'Lato', sans-serif;
-	color: white;
-	text-align: center;
-
-	text-shadow: 2px 2px 3px rgba(255,255,255,0.1);
-
-	margin: 0;
-	position: absolute;
-	top: 50%;
-	-ms-transform: translateY(-50%);
-	transform: translateY(-50%);
-}
-
-#first-page-parcoords h1{
-	font-family: Source Code Pro, monospace;
-	font-size: 45px;
-	line-height: 48px;
-	margin-bottom: 100px;
-	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
-}
-
-#first-page-parcoords h3 {
-	font-family: Source Code Pro, monospace;
-	margin-bottom: 5px;
-}
-
-#first-page-parcoords p{
-	left: 25%;
-	max-width: 50%;
-	position: relative;
-}
-
-#first-page-parcoords p span{
-	vertical-align: super;
-}
-
-#first-page-parcoords p:last-of-type{
-	margin-bottom: 75px;
-}
-
-#drop_zone {
-	border: 3px dashed #e6e6e6;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
-	border-radius: 5px;
-	padding: 25px;
-	text-align: center;
-	min-width: 300px;
-	max-width: 60%;
-	margin: auto;
-	color: white;
-}
-
-#after-load-parcoords{
-	font-family: 'Lato', sans-serif;
-	display: none;
-	color: white;
-	height: calc(100% - 79px);
-	overflow: auto;
-	text-align: center;
-	flex-direction: column;
-	position: absolute;
-	width: 100%;
-}
-
+/* Header */
 #header{
 	font-family: 'Lato', sans-serif;
 	color: white;
 	height: 79px;
+	transition: all .5s ease;
+	opacity: 0.001;
 }
 
 #header hr{
@@ -100,6 +36,12 @@ body{
 	border: 0;
 }
 
+#header::after {
+	height: 1px;
+	content: '�';
+	opacity: 0;
+}
+
 #header-content{
 	display: flex;
 	justify-content: space-between;
@@ -108,24 +50,104 @@ body{
 	position: relative;
 }
 
-#header-content p{
-	text-align: end;
+#header-buttons{
+	margin-top: 20px;
+	height: 45px;
 }
 
-#header-content h1{
-	text-align: start;
+.header-button{
+	font-weight: bold;
 	font-family: Source Code Pro, monospace;
 	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
-	margin-bottom: 0px;
+	margin-bottom: 0;
+	color: gray;
+	font-size: 16pt;
+	transition: all .5s ease;
+	height: 40px;
+	display: table-cell;
+	vertical-align: bottom;
 }
 
-#header-content::after {
-	height: 1px;
-	content: '�';
-	opacity: 0;
+.header-button:not(:last-child){
+	padding-right: 15px;
 }
 
-.pc-spa-contents{
+.header-button:not(.header-button-selected):hover{
+	color: lightgray;
+	cursor: pointer;
+}
+
+.header-button-selected{
+	font-size: 24pt;
+	color: white;
+}
+
+/* Parallel Coordinates */
+#parcoords-contents{
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	position: absolute;
+	transition: all .5s ease;
+	opacity: 0.001;
+}
+
+#parcoords-first-page{
+	width:100%;
+
+	font-family: 'Lato', sans-serif;
+	color: white;
+	text-align: center;
+
+	text-shadow: 2px 2px 3px rgba(255,255,255,0.1);
+
+	margin: 0;
+	position: absolute;
+	top: 50%;
+	-ms-transform: translateY(-50%);
+	transform: translateY(-50%);
+}
+
+#parcoords-first-page h1{
+	font-family: Source Code Pro, monospace;
+	font-size: 45px;
+	line-height: 48px;
+	margin-bottom: 100px;
+	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
+}
+
+#parcoords-first-page h3 {
+	font-family: Source Code Pro, monospace;
+	margin-bottom: 5px;
+}
+
+#parcoords-first-page p{
+	left: 25%;
+	max-width: 50%;
+	position: relative;
+}
+
+#parcoords-first-page p span{
+	vertical-align: super;
+}
+
+#parcoords-first-page p:last-of-type{
+	margin-bottom: 75px;
+}
+
+#parcoords-after-load{
+	font-family: 'Lato', sans-serif;
+	display: none;
+	color: white;
+	height: calc(100% - 79px);
+	overflow: auto;
+	text-align: center;
+	flex-direction: column;
+	position: absolute;
+	width: 100%;
+}
+
+.parcoords-box{
 	box-shadow:
 		0 2.8px 2.2px rgba(0, 0, 0, 0.034),
 		0 6.7px 5.3px rgba(0, 0, 0, 0.048),
@@ -141,10 +163,9 @@ body{
 	background: white;
 	border-radius: 5px;
 	text-align: left;
-
 }
 
-.loading{
+#data-loading{
 	width: 500px;
 	margin-left: auto;
 	margin-right: auto;
@@ -155,7 +176,21 @@ body{
 	box-shadow: 0 0 5px 10px #1CB5E0;
 }
 
-.loading .pc-loading{
+#data-loading .pc-loading{
 	margin-top: 0px;
 	display: none;
+}
+
+/* not used :( */
+#drop_zone {
+	border: 3px dashed #e6e6e6;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
+	padding: 25px;
+	text-align: center;
+	min-width: 300px;
+	max-width: 60%;
+	margin: auto;
+	color: white;
 }
