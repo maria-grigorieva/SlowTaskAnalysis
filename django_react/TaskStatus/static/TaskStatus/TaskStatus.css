@@ -1,45 +1,23 @@
 /* Page background */
 html{
-	background: #000046;  /* fallback for old browsers */
-	background: -webkit-linear-gradient(to top, #1CB5E0, #000046);  /* Chrome 10-25, Safari 5.1-6 */
-	background: linear-gradient(to top, #1CB5E0, #000046); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-
 	height:100%;
-
 	overflow: hidden;
 }
 
 body{
 	height: 100%;
-	margin: 0px;
+	margin: 0;
 }
 
 /* Header */
 #header{
 	font-family: 'Lato', sans-serif;
 	color: white;
-	height: 79px;
+	height: 59px;
 	transition: all .5s ease;
 	opacity: 0.001;
-}
 
-#header hr{
-	background-image: -webkit-linear-gradient(left, #000046, #8c8b8b, #000046);
-	background-image: -moz-linear-gradient(left, #000046, #8c8b8b, #000046);
-	background-image: -ms-linear-gradient(left, #000046, #8c8b8b, #000046);
-	background-image: -o-linear-gradient(left, #000046, #8c8b8b, #000046);
-	margin-bottom: 10px;
-	margin-top: 3px;
-	flex-shrink: 0;
-	height: 1px;
-	width: 80%;
-	border: 0;
-}
-
-#header::after {
-	height: 1px;
-	content: '�';
-	opacity: 0;
+	background: #333;
 }
 
 #header-content{
@@ -50,15 +28,22 @@ body{
 	position: relative;
 }
 
+@media screen and (max-width:1000px) {
+	#header-content {
+		left: 5%;
+		max-width: 90%;
+	}
+}
+
 #header-buttons{
-	margin-top: 20px;
+	margin-top: 10px;
 	height: 45px;
+	white-space: nowrap;
 }
 
 .header-button{
 	font-weight: bold;
 	font-family: Source Code Pro, monospace;
-	text-shadow: 2px 2px 3px rgba(255,255,255,0.4);
 	margin-bottom: 0;
 	color: gray;
 	font-size: 16pt;
@@ -84,7 +69,7 @@ body{
 
 /* Duration analysis */
 #duration-contents{
-	height: calc(100% - 79px);
+	height: calc(100% - 59px);
 	width: 100%;
 	overflow: hidden;
 	position: absolute;
@@ -134,7 +119,11 @@ body{
 }
 
 .duration-block .parcoords-box{
-	height: calc(100% - 49px);
+	height: calc(100% - 54px);
+}
+
+#duration-loading-label{
+	display: none;
 }
 
 .duration-img{
@@ -147,7 +136,7 @@ body{
 	margin-right:5px;
 }
 
-.img-hidden{
+.hidden{
 	display: none;
 }
 
@@ -178,10 +167,8 @@ body{
 	width:100%;
 
 	font-family: 'Lato', sans-serif;
-	color: white;
+	color: black;
 	text-align: center;
-
-	text-shadow: 2px 2px 3px rgba(255,255,255,0.1);
 
 	transition: all .5s ease;
 	opacity: 1;
@@ -233,32 +220,21 @@ body{
 }
 
 .parcoords-box{
-	box-shadow:
-		0 2.8px 2.2px rgba(0, 0, 0, 0.034),
-		0 6.7px 5.3px rgba(0, 0, 0, 0.048),
-		0 12.5px 10px rgba(0, 0, 0, 0.06),
-		0 22.3px 17.9px rgba(0, 0, 0, 0.072),
-		0 41.8px 33.4px rgba(0, 0, 0, 0.086),
-		0 100px 80px rgba(0, 0, 0, 0.12)
-	;
-
 	color: black;
-	margin: 0px 20px 20px 20px;
-	padding: 15px;
-	background: white;
+	margin: 10px;
+	padding: 5px;
 	border-radius: 5px;
 	text-align: left;
 }
 
 #data-loading{
-	width: 500px;
+	width: 400px;
 	margin-left: auto;
 	margin-right: auto;
 	background: white;
 	color: black;
 	padding: 15px;
 	border-radius: 15px;
-	box-shadow: 0 0 5px 10px #1CB5E0;
 }
 
 #data-loading .pc-loading{

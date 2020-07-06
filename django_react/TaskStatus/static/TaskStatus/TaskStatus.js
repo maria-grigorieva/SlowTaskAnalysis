@@ -8,12 +8,16 @@ function ChangeTab(tab){
     }
     else
     {
+        $('#header-parallelcoordinates').removeClass('hidden');
         $('#parcoords-contents').css({"left": "0", "opacity": "1"});
         $('#duration-contents').css( {"left": "-100vw", "opacity": "0"});
     }
 }
 
 function DatesChosen(){
+    $('#duration-loading-label').show();
+    $('#duration-starting-label').hide();
+
     $('#dates_loading').show();
     $('#dates_button').hide();
 
@@ -21,20 +25,20 @@ function DatesChosen(){
 }
 
 function GotDurationData(data){
-    $('#duration-description').css('opacity', '0');
+    $('#duration-description').css('opacity', '0').delay(1000).hide();
     $('.duration-block-right').css('opacity', '1');
     $('#dates_loading').hide();
 
     let load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
             'title="Load the data" class="duration-img duration-load">',
         loading_icon = '<img src="/static/ParallelCoordinates/loading.gif" data-type="loading" ' +
-            'title="The data is loading" class="duration-img img-hidden img-unclickable">',
+            'title="The data is loading" class="duration-img hidden img-unclickable">',
         ready_icon = '<img src="/static/images/checkmark.png" data-type="ready" ' +
-            'title="The data is loaded. Click to load the data again." class="duration-img img-hidden">',
+            'title="The data is loaded. Click to load the data again." class="duration-img hidden">',
         error_icon = '<img src="/static/images/delete.png" data-type="ready" ' +
-            'title="There was an error. Please try to load the data again." class="duration-img img-hidden img-unclickable">',
+            'title="There was an error. Please try to load the data again." class="duration-img hidden img-unclickable">',
         forward_btn = '<img src="/static/images/forward.png" data-type="run" ' +
-            'title="Build ParCoords diagrams" class="duration-img img-hidden">';
+            'title="Build ParCoords diagrams" class="duration-img hidden">';
 
     this.duration = {
         _storage: {},
@@ -68,6 +72,7 @@ function GotDurationData(data){
         mark: true,
         dom: 'ABlfrtip',
         buttons: ['copy', 'csv'],
+        "order": [[ 1, "desc" ]],
         "searching": false
     });
 

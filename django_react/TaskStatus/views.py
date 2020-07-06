@@ -90,15 +90,18 @@ def calculate_data(jeditaskid):
     try:
         jeditaskid = int(jeditaskid)
     except ValueError:
-        result = {'error': 'id should be an integer', 'jeditaskid': jeditaskid}
+        result = {'error': 'id should be an integer'}
         print('Error! Function "calculate_data" got not an integer input.')
 
-    if (not isinstance(jeditaskid, int)):
-        result = {'error': 'id should be an integer','jeditaskid': jeditaskid}
+    if not isinstance(jeditaskid, int):
+        result = {'error': 'id should be an integer'}
         print('Error! Function "calculate_data" got not an integer input.')
     else:
         try:
             connection = get_db_connection(CONN_STR)
+            if isinstance(connection, Exception):
+                raise connection
+
             statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
 
             min_time, max_time = task_time_range(connection, jeditaskid)
@@ -136,9 +139,14 @@ def calculate_data(jeditaskid):
                       # 'closed': closed.astype(str).to_dict('split'),
                       'scouts': scouts.astype(str).to_dict('split'),
                       'jeditaskid': jeditaskid}
+        except cx_Oracle.DatabaseError as e:
+            result = {'error': 'Error connecting to the database. ' + str(e)}
+
         except Exception as e:
-            result = {'error': 'There was an error. ' + str(e), 'jeditaskid': jeditaskid}
+            result = {'error': 'There was an error. ' + str(e)}
             print('Error! Function "calculate_data" got an error: ' + str(e))
+
+    result['jeditaskid'] = jeditaskid
     return result
 
 
@@ -173,7 +181,8 @@ def get_db_connection(conn_str):
         print('Connected to Oracle!')
         return conn
     except Exception as e:
-        print('Connection to Oracle failed')
+        print('Connection to Oracle failed. ' + str(e))
+        return e
 
 
 def jobs_with_statuses(connection,
