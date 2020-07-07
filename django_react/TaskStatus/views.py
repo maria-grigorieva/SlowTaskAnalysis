@@ -73,12 +73,32 @@ def duration_index(requset):
     """
     return render(requset, 'index-duration.html')
 
+
 def request_db(request):
     """
     AJAX backend to process the ID and give back the result
     """
-    jeditaskid = request.GET.get('jeditaskid', None)
-    return JsonResponse(calculate_data(jeditaskid))
+    result = {}
+    try:
+        request_type = request.GET.get('type', None)
+
+        if request_type == 'get-id-info':
+            jeditaskid = request.GET.get('jeditaskid', None)
+            result = calculate_data(jeditaskid)
+
+        elif request_type == 'get-slowest-tasks':
+            start = request.GET.get('start-time', None)
+            end = request.GET.get('end-time', None)
+            result = slowest_tasks(start, end).astype(str).to_dict('split')
+
+        else:
+            result['error'] = 'Wrong request type. Possible values: get-id-info, get-slowest-tasks.'
+
+    except Exception as e:
+        print("Exception processing the request: " + str(e))
+        result['error'] = str(e)
+
+    return JsonResponse(result)
 
 
 def calculate_data(jeditaskid):
@@ -102,9 +122,16 @@ def calculate_data(jeditaskid):
             if isinstance(connection, Exception):
                 raise connection
 
-            statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid))
+            jobs = jobs_with_statuses(connection, jeditaskid)
+            statuses = statuses_duration(jobs)
 
             min_time, max_time = task_time_range(connection, jeditaskid)
+
+            jobs_count = jobs['PANDAID'].nunique()
+            jobs_status_table = jobs['JOBSTATUS'].value_counts()
+            jobs_finished_count = jobs_status_table['finished']
+            jobs_failed_count = jobs_status_table['failed']
+
             task_sites = get_task_sites(connection, jeditaskid)
             efficiency = sites_efficiency(connection, min_time, max_time, task_sites)
 
@@ -138,7 +165,11 @@ def calculate_data(jeditaskid):
                       'failed': failed.astype(str).to_dict('split'),
                       # 'closed': closed.astype(str).to_dict('split'),
                       'scouts': scouts.astype(str).to_dict('split'),
-                      'jeditaskid': jeditaskid}
+                      'jobs_count': str(jobs_count),
+                      'finished_count': str(jobs_finished_count),
+                      'failed_count': str(jobs_failed_count),
+                      'min_time': str(min_time),
+                      'max_time': str(max_time)}
         except cx_Oracle.DatabaseError as e:
             result = {'error': 'Error connecting to the database. ' + str(e)}
 
@@ -153,17 +184,13 @@ def calculate_data(jeditaskid):
 def index(request, jeditaskid):
     result = calculate_data(jeditaskid)
     return render(request, 'index-duration.html', result)
-#.sort_values(by=['DURATION'], ascending=False).head(10000)
-#
-# def slowest_tasks(request):
-#     if request.method == 'POST':
-#         # TODO:
-#         # form
-#         return render(request, 'list_of_tasks.html')
-#     else:
-#         connection = get_db_connection(CONN_STR)
-#         get_slowest_user_tasks(connection, request['GET']['start_time'], request['GET']['end_time'])
-#         return render(request, 'list_of_tasks.html')
+    # .sort_values(by=['DURATION'], ascending=False).head(10000)
+
+
+def slowest_tasks(start, end):
+    connection = get_db_connection(CONN_STR)
+    return get_slowest_user_tasks(connection, start, end)
+    #    return render(request, 'list_of_tasks.html')
 
 
 def kmodes_samping(df):
@@ -375,6 +402,7 @@ def get_slowest_user_tasks(connection, start_time, end_time):
     """
     cursor = connection.cursor()
     query = \
+        "SELECT * FROM (" \
         "SELECT taskid," \
         "(TRUNC(endtime,'HH24') - " \
         "TRUNC(start_time,'HH24')) as duration " \
@@ -385,10 +413,10 @@ def get_slowest_user_tasks(connection, start_time, end_time):
         "AND prodsourcelabel = 'user' " \
         "AND start_time IS NOT NULL " \
         "AND endtime IS NOT NULL " \
-        "ORDER BY duration desc".format(start_time, end_time)
+        "ORDER BY duration desc) " \
+        "WHERE rownum < 51".format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
-                        columns=['taskid', 'duration']).sort_values(by='duration',
-                                                                    ascending=False).head(100)
+                        columns=['taskid', 'duration'])
 
 
 def get_seq_level(status, sequence_set):

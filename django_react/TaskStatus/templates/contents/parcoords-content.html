@@ -1,6 +1,5 @@
 {% load static %}
 <div id="parcoords-first-page" class="description-wrapper">
-    <h1>Parallel Coordinates</h1>
     <div id="data-loading">
         <div id="taskid-selector">
             Please enter a JediTaskID here and press the button.
@@ -18,44 +17,23 @@
 </div>
 
 <div id="parcoords-after-load">
-    <div class="parcoords-box">
-        <h1 id="taskid_header"></h1>
-        Jump to: <br>
-        <a href="#scouts">Scouts</a> <br>
-        <a href="#finished">Finished</a> <br>
-        {# <a href="#closed">Closed</a> <br> #}
-        <a href="#failed">Failed</a> <br>
-        {# <a href="#all_failed">All Failed</a> <br> #}
-        <a href="#pre_failed">Pre-Failed</a> <br>
+    <div class="parcoords-box parcoords-left-menu">
+        <p><b>TaskID:</b> <span id="pc-taskid_value"></span></p>
+        <p><b>Number of jobs:</b> <span id="pc-jobs_value"></span></p>
+        <p><b>Finished/failed:</b> <span id="pc-finished-failed_value"></span></p>
+        <p><b>Duration:</b> <span id="pc-duration_value"></span></p>
+        <p><b>Start:</b> <span id="pc-start_value"></span></p>
+        <p><b>End:</b> <span id="pc-end_value"></span></p>
+
+        <br>
+        <button type="button" id="scouts_button" class="blue" onclick="SwitchDiagram('scouts')">Scouts</button>
+        <button type="button" id="finished_button" class="green" onclick="SwitchDiagram('finished')">Finished</button>
+        <button type="button" id="failed_button" class="pink" onclick="SwitchDiagram('failed')">Failed</button>
+        <button type="button" id="pre-failed_button" class="orange" onclick="SwitchDiagram('pre_failed')">Pre-Failed</button>
     </div>
 
-    <div id="scouts" class="parcoords-box">
-        <h1>Scouts</h1>
-        <div id="scouts_pc"></div>
-    </div>
-
-    <div id="finished" class="parcoords-box">
-        <h1>Finished</h1>
-        <div id="finished_pc"></div>
-    </div>
-
-    {# <div id="closed" class="parcoords-box"> #}
-    {#    <h1>Closed</h1>#}
-    {#	<div id="closed_pc"></div>#}
-    {# </div> #}
-
-    <div id="failed" class="parcoords-box">
-        <h1>Failed</h1>
-        <div id="failed_pc"></div>
-    </div>
-
-    {# <div id="all_failed" class="parcoords-box"> #}
-    {#    <h1>All Failed Statuses</h1>#}
-    {#	<div id="all_failed_pc"></div>#}
-    {# </div> #}
-
-    <div id="pre_failed" class="parcoords-box">
-        <h1>Pre-Failed Statuses</h1>
-        <div id="pre_failed_pc"></div>
+    <div id="parcoords-diagram-container" class="parcoords-box">
+        <h1 id ="parcoords-diagram-label">Scouts</h1>
+        <div id="parcoords-diagram"></div>
     </div>
 </div>

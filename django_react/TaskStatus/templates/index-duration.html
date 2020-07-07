@@ -10,18 +10,18 @@
 
         <div id="duration-contents">
             <div class="duration-block duration-block-left">
-                <div class="parcoords-box">
+                <div class="duration-box">
                     <p>Pick dates of start and finish.</p>
                     <br>
 
                     <label for="start">Start date:</label>
 
-                    <input type="date" id="start" name="trip-start"
+                    <input type="date" id="duration-start" name="trip-start"
                            min="2018-01-01">
                     <br><br>
                     <label for="finish">Finish date:</label>
 
-                    <input type="date" id="finish" name="trip-finish"
+                    <input type="date" id="duration-finish" name="trip-finish"
                            min="2018-01-01">
 
                     <br>
@@ -68,6 +68,11 @@
                 $('#parcoords-contents').css({"opacity": "0.001", "left": "100vw"});
                 $('#duration-contents').css( {"left": "0", "opacity": "1"});
                 $('#header').css('opacity', '1');
+
+                let date = new Date();
+                document.getElementById('duration-finish').value = date.toISOString().split('T')[0];
+                date.setMonth(date.getMonth() - 1);
+                document.getElementById('duration-start').value = date.toISOString().split('T')[0];
             };
         </script>
     </body>

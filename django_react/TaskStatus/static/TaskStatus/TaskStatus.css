@@ -95,8 +95,18 @@ body{
 	flex: 0 0 20%;
 }
 
+.duration-block-left button{
+	padding: 5px;
+	margin: 15px;
+	width: 150px;
+}
+
 .duration-block-left .pc-loading{
 	display: none;
+	width: 150px;
+	margin-top: 20px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .duration-block-right{
@@ -115,11 +125,16 @@ body{
 }
 
 .duration-block-right .parcoords-box:nth-child(2) {
-	flex: 0 0 25%;
+	flex: 0 0 300px;
 }
 
-.duration-block .parcoords-box{
+.duration-box{
 	height: calc(100% - 54px);
+	color: black;
+	margin: 10px;
+	padding: 5px;
+	border-radius: 5px;
+	text-align: center;
 }
 
 #duration-loading-label{
@@ -153,18 +168,9 @@ body{
 	float: right;
 }
 
-/* Parallel Coordinates */
-#parcoords-contents{
-	height: calc(100% - 79px);
-	width: 100%;
-	overflow: hidden;
-	position: absolute;
-	transition: all .5s ease;
-	opacity: 0.001;
-}
-
+/* Description box */
 .description-wrapper{
-	width:100%;
+	width: 100%;
 
 	font-family: 'Lato', sans-serif;
 	color: black;
@@ -207,16 +213,34 @@ body{
 	margin-bottom: 75px;
 }
 
+/* Parallel Coordinates */
+#parcoords-contents{
+	height: calc(100% - 59px);
+	width: 100%;
+	overflow: hidden;
+	position: absolute;
+	transition: all .5s ease;
+	opacity: 0.001;
+}
+
+#parcoords-first-page{
+	transition: all .5s ease;
+}
+
 #parcoords-after-load{
 	font-family: 'Lato', sans-serif;
-	display: none;
+
 	color: white;
 	height: 100%;
-	overflow: auto;
+	overflow: hidden;
 	text-align: center;
-	flex-direction: column;
 	position: absolute;
 	width: 100%;
+	transition: all .5s ease;
+	opacity: 0.001;
+
+	display: flex;
+	flex-direction: row;
 }
 
 .parcoords-box{
@@ -225,6 +249,45 @@ body{
 	padding: 5px;
 	border-radius: 5px;
 	text-align: left;
+	overflow-y: auto;
+}
+
+.parcoords-left-menu{
+	flex: 0 0 250px;
+}
+
+.parcoords-left-menu p{
+	margin: 5px;
+}
+
+.parcoords-left-menu p:first-child{
+	font-size: 22px;
+	margin: 5px;
+}
+
+.parcoords-left-menu button{
+	display: block;
+	width: 100px;
+	padding: 5px;
+	margin-bottom: 5px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.green{
+	background: lightgreen;
+}
+
+.orange{
+	background: orange;
+}
+
+.pink{
+	background: pink;
+}
+
+.blue{
+	background: lightblue;
 }
 
 #data-loading{

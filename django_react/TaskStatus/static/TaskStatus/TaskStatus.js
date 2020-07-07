@@ -21,13 +21,29 @@ function DatesChosen(){
     $('#dates_loading').show();
     $('#dates_button').hide();
 
-    setTimeout(() => GotDurationData({}), 1000); // ajax placeholder
+    let start_time = $('#duration-start').val(),
+        end_time = $('#duration-finish').val();
+
+    $.ajax({
+        url: '/ajax/request_db',
+        data: { 'type': 'get-slowest-tasks', 'start-time': start_time, 'end-time' : end_time},
+        dataType: 'json',
+        timeout: 0,
+        success: (data) => GotDurationData(data),
+        error: (error) => RequestError('There was an error: ' + error.statusText)
+    });
 }
 
 function GotDurationData(data){
+    if (data.hasOwnProperty('error')){
+        RequestError(data.error);
+        return;
+    }
+
     $('#duration-description').css('opacity', '0').delay(1000).hide();
     $('.duration-block-right').css('opacity', '1');
     $('#dates_loading').hide();
+    $('#dates_button').show();
 
     let load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
             'title="Load the data" class="duration-img duration-load">',
@@ -58,12 +74,7 @@ function GotDurationData(data){
                 }
             }
         }),
-        _cells: [
-            [21250253, '32', 'btns'],
-            [21250254, '48', 'btns'],
-            [21250255, '25', 'btns'],
-            [21250256, '21', 'btns']
-        ]
+        _cells: data.data.map(x => x.concat(['btns']))
     };
 
     this.duration._table = $('#slowest-tasks-list').DataTable({
@@ -75,12 +86,14 @@ function GotDurationData(data){
         "order": [[ 1, "desc" ]],
         "searching": false
     });
+    $('#slowest-tasks-list').css('width', '300px');
 
     $('#slowest-tasks-list tbody').on( 'click', 'img', function () {
-        let data = window.duration._table.row($(this).parents('tr')).data();
-        if (this.dataset.type==='run') RunParCoords(data[0]);
+        let jeditaskid = window.duration._table.row($(this).parents('tr')).data()[0].toString();
+
+        if (this.dataset.type==='run') RunParCoords(jeditaskid);
         else if (this.dataset.type==='loading') return;
-        else PreLoadIDinfo(data[0]);
+        else PreLoadIDinfo(jeditaskid);
     });
 }
 
@@ -99,8 +112,9 @@ function PreLoadIDinfo(id){
 
     $.ajax({
         url: '/ajax/request_db',
-        data: { 'jeditaskid': id },
+        data: { 'type': 'get-id-info', 'jeditaskid': id },
         dataType: 'json',
+        timeout: 0,
         success: (data) => StoreData(data),
         error: (error) => RequestError('There was an error: ' + error.statusText, id)
     });
@@ -117,7 +131,7 @@ function StoreData(data){
 }
 
 function IDtoTable(id){
-    return this.duration._cells.findIndex(x => x[0] === id);
+    return this.duration._cells.findIndex(x => x[0] === id.toString());
 }
 
 function IDLoading(id){
@@ -161,8 +175,9 @@ function GetIDinfo(id){
 
     $.ajax({
         url: '/ajax/request_db',
-        data: { 'jeditaskid': value },
+        data: { 'type': 'get-id-info', 'jeditaskid': value },
         dataType: 'json',
+        timeout: 0,
         success: (data) => BuildParCoords(data),
         error: (error) => RequestError('There was an error: ' + error.statusText, value)
       });
@@ -177,9 +192,25 @@ function BuildParCoords(data) {
     }
 
     $('#header').show();
-    $('#parcoords-first-page').hide();
-    $('#parcoords-after-load').show();
-    $('#taskid_header').text('TaskID = ' + data.jeditaskid + ' (failed jobs statuses exploration)');
+    $('#parcoords-first-page').css("opacity", "0").hide();
+    $('#parcoords-after-load').css("opacity", "1").show();
+
+    let dateformat = Intl.DateTimeFormat('en-GB', {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric'
+        }),
+        time_dif = Math.ceil((Date.parse(data.max_time) - Date.parse(data.min_time)) / (1000 * 60 * 60 * 24));
+
+    $('#pc-taskid_value').text(data.jeditaskid);
+    $('#pc-jobs_value').text(data.jobs_count);
+    $('#pc-finished-failed_value').text(data.finished_count + ' / ' + data.failed_count);
+    $('#pc-duration_value').text(time_dif + ' days');
+    $('#pc-start_value').text(dateformat.format(Date.parse(data.min_time)));
+    $('#pc-end_value').text(dateformat.format(Date.parse(data.max_time)));
+
 
     if (this.hasOwnProperty('duration')){
         this.duration._storage[data.jeditaskid] = data;
@@ -211,7 +242,7 @@ function BuildParCoords(data) {
             },
             skip: {                     // Feature skip options
                 dims: {
-                    mode: "show",           // Skip mode: show, hide, none
+                    mode: "show",       // Skip mode: show, hide, none
                     strict_naming: true,
                     values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
                         'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR_CODE']   // Features to be shown on diagram by default
@@ -224,31 +255,34 @@ function BuildParCoords(data) {
         }
     };
 
+    if (this.parcoords._data.scouts.data.length > 500) this.parcoords._options.worker.offscreen = true;
+
     $.fn.dataTable.ext.search = [];
 
     let pdata = this.parcoords._data,
         options = this.parcoords._options;
 
-    this.parcoords.scouts_pc = new ParallelCoordinates("scouts_pc",
+    this.parcoords._diagram = new ParallelCoordinates("parcoords-diagram",
         pdata.scouts['columns'], pdata.scouts['data'], 'JOBSTATUS', null, options);
+}
 
-    this.parcoords.failed_pc = new ParallelCoordinates("failed_pc",
-        pdata.failed['columns'], pdata.failed['data'], 'JOBSTATUS', null, options);
+function SwitchDiagram(type){
+    let pdata = this.parcoords._data,
+        options = this.parcoords._options,
+        clustering = (type === 'pre_failed') ? 'PRE-FAILED' : 'JOBSTATUS',
+        label = '';
 
-    this.parcoords.finished_pc = new ParallelCoordinates("finished_pc",
-        pdata.finished['columns'], pdata.finished['data'], 'JOBSTATUS', null, options);
+    if (type === 'scouts') label = 'Scouts';
+    else if (type === 'finished') label = 'Finished';
+    else if (type === 'failed') label = 'Failed';
+    else if (type === 'pre_failed') label = 'Pre-Failed';
 
-    /*
-    this.parcoords.closed_pc = new ParallelCoordinates("closed_pc",
-         pdata.closed['columns'], pdata.closed['data'], 'JOBSTATUS', null, options);
+    $('#parcoords-diagram-label').text(label);
 
-     this.parcoords.all_failed_pc = new ParallelCoordinates("all_failed_pc",
-         pdata.statuses['columns'], pdata.statuses['data'], 'JOBSTATUS', null, options);
-     */
+    if (pdata[type].data.length > 500) this.parcoords._options.worker.offscreen = true;
 
-    this.parcoords.pre_failed_pc = new ParallelCoordinates("pre_failed_pc",
-        pdata.pre_failed['columns'], pdata.pre_failed['data'], 'PRE-FAILED', null, options);
-
+    this.parcoords._diagram.updateData("parcoords-diagram", pdata[type]['columns'],
+        pdata[type]['data'], clustering, null, options);
 }
 
 function RequestError(error, id = null){
