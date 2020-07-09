@@ -325,8 +325,8 @@ def task_time_range(connection, taskid):
     """
     cursor = connection.cursor()
     query = \
-        "SELECT MIN (starttime), MAX (endtime) " \
-        "FROM ATLAS_PANDAARCH.JOBSARCHIVED " \
+        "SELECT starttime, endtime " \
+        "FROM ATLAS_PANDA.JEDI_TASKS " \
         "WHERE jeditaskid = {}".format(taskid)
     cursor.execute(query)
     row = cursor.fetchone()
