@@ -75,6 +75,16 @@ body{
 	color: white;
 }
 
+.repo-link{
+	transition: all .5s ease;
+	opacity: 0.4;
+	height: 30px;
+}
+
+.repo-link:hover{
+	opacity: 1;
+}
+
 /* Duration analysis */
 #duration-contents{
 	font-family: 'Lato', sans-serif;

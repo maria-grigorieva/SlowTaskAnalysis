@@ -475,16 +475,15 @@ def get_slowest_user_tasks(connection, start_time, end_time):
     cursor = connection.cursor()
     query = \
         "SELECT * FROM (" \
-            "SELECT taskid, " \
-            "(TRUNC(endtime,'HH24') - " \
-            "TRUNC(start_time,'HH24')) as duration " \
-            "FROM ATLAS_DEFT.T_PRODUCTION_TASK " \
-            "WHERE start_time >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
-            "AND start_time <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
-            "AND status in ('done', 'finished') " \
+            "SELECT jeditaskid, " \
+            "(TRUNC(modificationtime,'HH24') - " \
+            "TRUNC(starttime,'HH24')) as duration " \
+            "FROM ATLAS_PANDA.JEDI_TASKS " \
+            "WHERE starttime >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
+            "AND starttime <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
+            "AND status in ('done', 'finished', 'failed', 'broken', 'aborted') " \
             "AND prodsourcelabel = 'user' " \
-            "AND start_time IS NOT NULL " \
-            "AND endtime IS NOT NULL " \
+            "AND starttime IS NOT NULL " \
             "ORDER BY duration desc) " \
         "WHERE rownum < 51".format(start_time, end_time)
 
@@ -503,17 +502,15 @@ def get_boxplot_information(connection, start_time, end_time):
     cursor = connection.cursor()
     query = \
         "SELECT " \
-        "(TRUNC(endtime,'HH24') - " \
-        "TRUNC(start_time,'HH24')) as duration, " \
+        "(TRUNC(modificationtime,'HH24') - " \
+        "TRUNC(starttime,'HH24')) as duration, " \
         " status " \
-        "FROM ATLAS_DEFT.T_PRODUCTION_TASK " \
-        "WHERE start_time >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
-        "AND start_time <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
-        "AND status in ('done','finished', 'aborted', 'exhausted', 'failed', " \
-        "'obsolete', 'broken', 'ready') " \
+        "FROM ATLAS_PANDA.JEDI_TASKS " \
+        "WHERE starttime >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
+        "AND starttime <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
+        "AND status in ('done', 'finished', 'failed', 'broken', 'aborted') " \
         "AND prodsourcelabel = 'user' " \
-        "AND start_time IS NOT NULL " \
-        "AND endtime IS NOT NULL " \
+        "AND starttime IS NOT NULL " \
         "ORDER BY duration desc ".format(start_time, end_time)
 
     return pd.DataFrame([row for row in cursor.execute(query)],

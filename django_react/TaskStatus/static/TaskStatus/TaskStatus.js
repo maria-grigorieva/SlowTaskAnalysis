@@ -420,6 +420,8 @@ function RequestError(error, id = null){
     $('#data-loading')
         .css('background', 'lightpink');
 
+    $('#dates_button').show();
+
     if (this.hasOwnProperty('duration') && id !== null) {
         IDErrored(id, error.toString());
     }
