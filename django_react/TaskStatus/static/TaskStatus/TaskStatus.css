@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Oswald script=all rev=1";
+  src: url("https://fonts.gstatic.com/s/oswald/v29/TK3_WkUHHAIjg75cFRf3bXL8LICs1xZosUZiZQ.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Page background */
 html{
 	height:100%;
@@ -69,6 +77,7 @@ body{
 
 /* Duration analysis */
 #duration-contents{
+	font-family: 'Lato', sans-serif;
 	height: calc(100% - 59px);
 	width: 100%;
 	overflow: hidden;
@@ -79,6 +88,10 @@ body{
 	display: flex;
 	flex-wrap: nowrap;
 	justify-content: space-between;
+}
+
+#duration-contents h1{
+	font-family: Source Code Pro, monospace;
 }
 
 #duration-description{
@@ -95,10 +108,13 @@ body{
 	flex: 0 0 20%;
 }
 
-.duration-block-left button{
+.duration-block-left .duration-box button{
+	width: 150px;
+}
+
+.duration-block-left .duration-box button:first-of-type {
 	padding: 5px;
 	margin: 15px;
-	width: 150px;
 }
 
 .duration-block-left .pc-loading{
@@ -120,11 +136,11 @@ body{
 	opacity: 0;
 }
 
-.duration-block-right .parcoords-box:nth-child(1) {
+.duration-block-right .duration-box:nth-child(1) {
 	flex: 1 1 75%;
 }
 
-.duration-block-right .parcoords-box:nth-child(2) {
+.duration-block-right .duration-box:nth-child(2) {
 	flex: 0 0 300px;
 }
 
@@ -135,6 +151,17 @@ body{
 	padding: 5px;
 	border-radius: 5px;
 	text-align: center;
+}
+
+.duration-box h1{
+	font-size: 24px;
+}
+
+#duration-boxplot-loading{
+	width: 300px;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 #duration-loading-label{
@@ -221,6 +248,10 @@ body{
 	position: absolute;
 	transition: all .5s ease;
 	opacity: 0.001;
+}
+
+#parcoords-contents h1{
+	font-family: 'Oswald script=all rev=1';
 }
 
 #parcoords-first-page{

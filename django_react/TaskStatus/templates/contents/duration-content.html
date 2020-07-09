@@ -1,0 +1,41 @@
+<div class="duration-block duration-block-left">
+    <div class="duration-box">
+        <p>Pick dates of start and finish.</p>
+        <br>
+
+        <label for="start">Start date:</label>
+        <input type="date" id="duration-start" name="trip-start" min="2018-01-01">
+        <br>
+
+        <label for="finish">Finish date:</label>
+        <input type="date" id="duration-finish" name="trip-finish" min="2018-01-01">
+        <br>
+
+        <button type="button" id="dates_button" onclick="DatesChosen()">Request data</button>
+        <div class="pc-loading" id="dates_loading">
+            Please wait...
+        </div>
+        <br><br>
+        <p>Select predefined time span:</p>
+        <button type="button" onclick="SetDates('last-month')">Last month</button>
+        <button type="button" onclick="SetDates('last-day')">Last day</button>
+    </div>
+</div>
+
+<div class="duration-block duration-block-right">
+    <div class="duration-box">
+        <span id="duration-boxplot-loading" class="pc-loading">Loading box plot data...</span>
+        <div id="duration-boxplot"></div>
+    </div>
+    <div class="duration-box">
+        <h1>Slowest tasks</h1>
+        <table id="slowest-tasks-list"></table>
+    </div>
+</div>
+
+<div id="duration-description" class="description-wrapper">
+    <h1>Task Execution Analysis</h1>
+    <p id="duration-starting-label">Choose dates on the left to make a request.</p>
+    <p id="duration-loading-label" class="hidden">Please wait while the data is loading.</p>
+    <p></p>
+</div>

@@ -2,3 +2,4 @@
 config.ini
 *__pycache__*
 django_react/db.sqlite3
+django_react/json/

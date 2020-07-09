@@ -9,51 +9,7 @@
         {% include "contents/duration-header.html" %}
 
         <div id="duration-contents">
-            <div class="duration-block duration-block-left">
-                <div class="duration-box">
-                    <p>Pick dates of start and finish.</p>
-                    <br>
-
-                    <label for="start">Start date:</label>
-
-                    <input type="date" id="duration-start" name="trip-start"
-                           min="2018-01-01">
-                    <br><br>
-                    <label for="finish">Finish date:</label>
-
-                    <input type="date" id="duration-finish" name="trip-finish"
-                           min="2018-01-01">
-
-                    <br>
-
-                    <button type="button" id="dates_button" onclick="DatesChosen()">Request data</button>
-                    <div class="pc-loading" id="dates_loading">
-                        Please wait...
-                    </div>
-
-                </div>
-            </div>
-            <div class="duration-block duration-block-right">
-                <div class="parcoords-box">
-                    A box plot here.
-                </div>
-                <div class="parcoords-box">
-                    A table with the slowest here. This is a sample in demonstration purposes.
-
-                    <br><br>
-
-                    <table id="slowest-tasks-list"></table>
-                </div>
-
-            </div>
-
-            <div id="duration-description" class="description-wrapper">
-                <h1>Task Execution Analysis</h1>
-                <p id="duration-starting-label">Choose dates on the left to make a request.</p>
-                <p id="duration-loading-label" class="hidden">Please wait while the data is loading.</p>
-                <p></p>
-            </div>
-
+            {% include "contents/duration-content.html" %}
         </div>
 
         <div id="parcoords-contents">
@@ -69,10 +25,8 @@
                 $('#duration-contents').css( {"left": "0", "opacity": "1"});
                 $('#header').css('opacity', '1');
 
-                let date = new Date();
-                document.getElementById('duration-finish').value = date.toISOString().split('T')[0];
-                date.setMonth(date.getMonth() - 1);
-                document.getElementById('duration-start').value = date.toISOString().split('T')[0];
+                // Set the dates so they point at the last month
+                SetDates('last-month');
             };
         </script>
     </body>
