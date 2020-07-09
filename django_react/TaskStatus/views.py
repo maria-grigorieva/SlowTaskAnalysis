@@ -160,10 +160,10 @@ def get_taskid_information(jeditaskid):
             jobs_finished_count = jobs_status_table['finished']
             jobs_failed_count = jobs_status_table['failed']
 
+            """
             # Retrieve task sites and efficiency
             task_sites = get_task_sites(connection, jeditaskid)
-
-            """
+            
             # Efficiency disabled for now
             efficiency = sites_efficiency(connection, jeditaskid, min_time, max_time, task_sites)
 

@@ -298,7 +298,7 @@ function BuildParCoords(data) {
         }),
         time_dif = Math.ceil((Date.parse(data.max_time) - Date.parse(data.min_time)) / (1000 * 60 * 60 * 24));
 
-    $('#pc-taskid_value').text(data.jeditaskid);
+    $('#pc-taskid_value').text(numberWithSpaces(data.jeditaskid));
     $('#pc-jobs_value').text(data.jobs_count);
     $('#pc-finished-failed_value').text(data.finished_count + ' / ' + data.failed_count);
     $('#pc-duration_value').text(time_dif + ' days');
