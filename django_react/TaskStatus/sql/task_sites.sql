@@ -1,0 +1,4 @@
+SELECT DISTINCT(computingsite)
+FROM ATLAS_PANDAARCH.JOBSARCHIVED
+WHERE jeditaskid = {}
+GROUP BY computingsite

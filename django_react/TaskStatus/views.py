@@ -35,24 +35,18 @@ CONN_INFO = {
 }
 CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
 
-# @api_view(['GET'])
-# @renderer_classes([JSONRenderer])
-# def index(request, jeditaskid):
-#     config = configparser.ConfigParser()
-#     config.read('../config.ini')
-#     CONN_INFO = {
-#         'host': config['ORACLE']['host'],
-#         'port': config['ORACLE']['port'],
-#         'user': config['ORACLE']['user'],
-#         'psw': config['ORACLE']['pwd'],
-#         'service': config['ORACLE']['service'],
-#     }
-#     CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
-#     connection = get_db_connection(CONN_STR)
-#     print(request)
-#     statuses = statuses_duration(jobs_with_statuses(connection, jeditaskid)).to_dict('records')
-#     results = AllFailedJobs(statuses, many=True).data
-#     return Response(results)
+# Read sql scripts
+SQL_DIR = 'TaskStatus/sql/'
+SQL_SCRIPTS = {}
+
+sql_files = os.listdir(SQL_DIR)
+for file in sql_files:
+    path = "{0}/{1}".format(SQL_DIR, file)
+    name = file[:-4]
+    with open(path, 'r') as infile:
+        lines = [(" ".join(line.split())) for line
+                 in infile.readlines() if not line.startswith('--')]
+        SQL_SCRIPTS[name] = ' '.join(lines)
 
 
 def task_index(requset):
@@ -265,42 +259,7 @@ def jobs_with_statuses(connection, taskid):
     """
     try:
         cursor = connection.cursor()
-        # query = \
-        #     "SELECT s.pandaid, s.modiftime_extended, " \
-        #     "trunc(s.modiftime_extended, 'DDD') as date_truncated, "\
-        #     "s.jobstatus, " \
-        #     "s.computingsite, " \
-        #     "s.modificationhost, " \
-        #     "j.attemptnr, " \
-        #     "j.jobstatus as final_status, " \
-        #     "j.exeerrorcode, j.exeerrordiag, j.superrorcode, j.superrordiag,"\
-        #     "j.ddmerrorcode, j.ddmerrordiag, j.taskbuffererrorcode, j.taskbuffererrordiag,"\
-        #     "j.piloterrorcode, j.piloterrordiag, "\
-        #     "(CASE WHEN INSTR(LOWER(specialhandling), 'sj') > 0 "\
-        #     "THEN 'SCOUT' "\
-        #     "ELSE 'NOT_SCOUT' END) as is_scout "\
-        #     "FROM ATLAS_PANDA.JOBS_STATUSLOG s " \
-        #     "INNER JOIN ATLAS_PANDAARCH.JOBSARCHIVED j ON(s.pandaid = j.pandaid) " \
-        #     "WHERE jeditaskid = {} AND " \
-        #     "j.jobstatus = 'failed'".format(taskid)
-        query = \
-            "SELECT s.pandaid, s.modiftime_extended, " \
-            "trunc(s.modiftime_extended, 'DDD') as date_truncated, "\
-            "s.jobstatus, " \
-            "s.computingsite, " \
-            "s.modificationhost, " \
-            "j.attemptnr, " \
-            "j.jobstatus as final_status, " \
-            "j.exeerrorcode, j.exeerrordiag, j.superrorcode, j.superrordiag,"\
-            "j.ddmerrorcode, j.ddmerrordiag, j.taskbuffererrorcode, j.taskbuffererrordiag,"\
-            "j.piloterrorcode, j.piloterrordiag, "\
-            "(CASE WHEN INSTR(LOWER(specialhandling), 'sj') > 0 "\
-            "THEN 'SCOUT' "\
-            "ELSE 'NOT_SCOUT' END) as is_scout "\
-            "FROM ATLAS_PANDA.JOBS_STATUSLOG s " \
-            "INNER JOIN ATLAS_PANDAARCH.JOBSARCHIVED j ON(s.pandaid = j.pandaid) " \
-            "WHERE jeditaskid = {}".format(taskid)
-        print("[" + str(taskid) + "] " + query)
+        query = SQL_SCRIPTS['jobs_with_statuses'].format(taskid)
         return pd.DataFrame([row for row in cursor.execute(query)],
                             columns=['PANDAID', 'MODIFTIME_EXTENDED', 'DATE_TRUNCATED',
                                      'JOBSTATUS', 'COMPUTINGSITE', 'MODIFICATIONHOST',
@@ -324,10 +283,7 @@ def task_time_range(connection, taskid):
     :return: start time and end time
     """
     cursor = connection.cursor()
-    query = \
-        "SELECT starttime, endtime " \
-        "FROM ATLAS_PANDA.JEDI_TASKS " \
-        "WHERE jeditaskid = {}".format(taskid)
+    query = SQL_SCRIPTS['task_time_range'].format(taskid)
     cursor.execute(query)
     row = cursor.fetchone()
     return row[0], row[1]
@@ -341,10 +297,7 @@ def get_task_sites(connection, taskid):
     :return: sites list
     """
     cursor = connection.cursor()
-    query = "SELECT DISTINCT(computingsite) "\
-            "FROM ATLAS_PANDAARCH.JOBSARCHIVED " \
-            "WHERE jeditaskid = {} " \
-            "GROUP BY computingsite".format(taskid)
+    query = SQL_SCRIPTS['task_sites'].format(taskid)
     sites_list = [row[0] for row in cursor.execute(query)]
     return ','.join("'{0}'".format(w) for w in sites_list)
 
@@ -364,19 +317,7 @@ def sites_efficiency(connection, jeditaskid, min_time, max_time, sites):
     # for each date of the time span
     print("[" + str(jeditaskid) + '] Calculating computing site efficiency...')
     cursor = connection.cursor()
-    query = \
-        "SELECT computingsite, "\
-        "trunc(statechangetime,'DDD'), "\
-        "jobstatus, "\
-        "count(*) "\
-        "FROM ATLAS_PANDAARCH.JOBSARCHIVED "\
-        "WHERE statechangetime >= to_date('{}', 'yyyy-MM-dd HH24:mi:ss') "\
-        "AND statechangetime < to_date('{}', 'yyyy-MM-dd HH24:mi:ss') "\
-        "AND jobstatus IN ('finished','failed') "\
-        "AND computingsite IN ({}) " \
-        "GROUP BY computingsite, "\
-        "trunc(statechangetime,'DDD'), "\
-        "jobstatus".format(min_time, max_time, sites)
+    query = SQL_SCRIPTS['calculate_efficiency'].format(min_time, max_time, sites)
     result = pd.DataFrame([row for row in cursor.execute(query)],
                         columns=['COMPUTINGSITE',
                                  'STATECHANGETIME',
@@ -460,10 +401,6 @@ def get_slowest_job_statuses(df, limit=400):
     return df.sort_values(by=['DURATION'], ascending=False).head(limit)
 
 
-def convert_to_csv(df, filename):
-    df.to_csv(filename)
-
-
 def get_slowest_user_tasks(connection, start_time, end_time):
     """
     Get the list of the slowest user tasks in a time span
@@ -473,20 +410,7 @@ def get_slowest_user_tasks(connection, start_time, end_time):
     :return: DataFrame with top 50 longest tasks in a time span
     """
     cursor = connection.cursor()
-    query = \
-        "SELECT * FROM (" \
-            "SELECT jeditaskid, " \
-            "(TRUNC(modificationtime,'HH24') - " \
-            "TRUNC(starttime,'HH24')) as duration " \
-            "FROM ATLAS_PANDA.JEDI_TASKS " \
-            "WHERE starttime >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
-            "AND starttime <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
-            "AND status in ('done', 'finished', 'failed', 'broken', 'aborted') " \
-            "AND prodsourcelabel = 'user' " \
-            "AND starttime IS NOT NULL " \
-            "ORDER BY duration desc) " \
-        "WHERE rownum < 51".format(start_time, end_time)
-
+    query = SQL_SCRIPTS['slowest_user_tasks'].format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
                         columns=['taskid', 'duration'])
 
@@ -500,19 +424,7 @@ def get_boxplot_information(connection, start_time, end_time):
     :return: DataFrame with duration and status columns
     """
     cursor = connection.cursor()
-    query = \
-        "SELECT " \
-        "(TRUNC(modificationtime,'HH24') - " \
-        "TRUNC(starttime,'HH24')) as duration, " \
-        " status " \
-        "FROM ATLAS_PANDA.JEDI_TASKS " \
-        "WHERE starttime >= to_date('{}','YYYY-MM-DD HH24:MI:SS') " \
-        "AND starttime <= to_date('{}', 'YYYY-MM-DD HH24:MI:SS') " \
-        "AND status in ('done', 'finished', 'failed', 'broken', 'aborted') " \
-        "AND prodsourcelabel = 'user' " \
-        "AND starttime IS NOT NULL " \
-        "ORDER BY duration desc ".format(start_time, end_time)
-
+    query = SQL_SCRIPTS['boxplot_information'].format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
                         columns=['duration', 'status'])
 

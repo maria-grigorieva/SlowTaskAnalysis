@@ -381,7 +381,7 @@ function SwitchDiagram(type, user_approved = false){
 
     $('#parcoords-diagram-label').text(label);
 
-    if (pdata[type].data.length > 500) this.parcoords._options.worker.offscreen = true;
+    this.parcoords._options.worker.offscreen = (pdata[type].data.length > 500);
     if (pdata[type].data.length > 5000)
         if (!user_approved) {
             $('#parcoords-too-much-data')
