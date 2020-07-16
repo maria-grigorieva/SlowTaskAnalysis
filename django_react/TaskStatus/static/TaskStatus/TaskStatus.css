@@ -167,6 +167,11 @@ body{
 	font-size: 24px;
 }
 
+#duration-boxplot .svg-container{
+	margin-left: auto;
+	margin-right: auto;
+}
+
 #duration-boxplot-loading{
 	width: 300px;
 	display: block;

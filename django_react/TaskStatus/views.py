@@ -49,25 +49,25 @@ for file in sql_files:
         SQL_SCRIPTS[name] = ' '.join(lines)
 
 
-def task_index(requset):
+def task_index(request):
     """
     Renders a page asking to enter an ID
     """
-    return render(requset, 'index-task.html')
+    return render(request, 'index-task.html')
 
 
-def task_index_preselected(requset, jeditaskid):
+def task_index_preselected(request, jeditaskid):
     """
     Renders a page with a pre-entered ID, immediately starting the search
     """
-    return render(requset, 'index-task-preselected.html', {'jeditaskid': jeditaskid})
+    return render(request, 'index-task-preselected.html', {'jeditaskid': jeditaskid})
 
 
-def duration_index(requset):
+def duration_index(request):
     """
     Renders a page asking to enter the dates for tasks analysis
     """
-    return render(requset, 'index-duration.html')
+    return render(request, 'index-duration.html')
 
 
 def request_db(request):
@@ -237,7 +237,8 @@ def get_taskid_information(jeditaskid):
 
 def get_db_connection(conn_str):
     """
-    Connect to Oracle
+    Connect to Oracle.
+
     :param conn_str: Connection configuration
     :return: cx_Oracle object or an error
     """
@@ -252,7 +253,8 @@ def get_db_connection(conn_str):
 
 def jobs_with_statuses(connection, taskid):
     """
-    Get job list of a given task
+    Get job list of a given task.
+
     :param connection: cx_Oracle object
     :param taskid: ID of the task
     :return: DataFrame with jobs or None if error
@@ -277,7 +279,8 @@ def jobs_with_statuses(connection, taskid):
 
 def task_time_range(connection, taskid):
     """
-    Get the time range of a given task
+    Get the time range of a given task.
+
     :param connection: cx_Oracle object
     :param taskid: ID of the task
     :return: start time and end time
@@ -291,7 +294,8 @@ def task_time_range(connection, taskid):
 
 def get_task_sites(connection, taskid):
     """
-    Get computing sites where the task was executed
+    Get computing sites where the task was executed.
+
     :param connection: cx_Oracle object
     :param taskid: ID of the task
     :return: sites list
@@ -304,7 +308,8 @@ def get_task_sites(connection, taskid):
 
 def sites_efficiency(connection, jeditaskid, min_time, max_time, sites):
     """
-    Calculate the efficiency of sites
+    Calculate the efficiency of sites.
+
     :param connection: cx_Oracle object
     :param jeditaskid: ID of the currently processing task (used for logging)
     :param min_time: start time
@@ -383,7 +388,8 @@ def statuses_duration(df):
 
 def pre_failed(df):
     """
-    Return only jobs statuses previous to failed
+    Return only jobs statuses previous to failed.
+
     :param df:
     :return:
     """
@@ -403,7 +409,8 @@ def get_slowest_job_statuses(df, limit=400):
 
 def get_slowest_user_tasks(connection, start_time, end_time):
     """
-    Get the list of the slowest user tasks in a time span
+    Get the list of the slowest user tasks in a time span.
+
     :param connection: cx_Oracle object
     :param start_time: start time
     :param end_time: end time
@@ -417,7 +424,8 @@ def get_slowest_user_tasks(connection, start_time, end_time):
 
 def get_boxplot_information(connection, start_time, end_time):
     """
-    Get the list of all jobs and their statuses and durations in a time span
+    Get the list of all jobs and their statuses and durations in a time span.
+
     :param connection: cx_Oracle object
     :param start_time: start time
     :param end_time: end time
