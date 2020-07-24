@@ -27,5 +27,6 @@ urlpatterns = [
     url('ajax/request_db', views.request_db, name='request_db'),
 
     # Duration analysis
+    path('', views.duration_index),
     path('duration/', views.duration_index)
 ]

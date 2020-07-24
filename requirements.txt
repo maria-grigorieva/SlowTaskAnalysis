@@ -1,0 +1,7 @@
+﻿Django==2.1.*
+djangorestframework==3.11.0
+django-cors-headers==3.4.0
+pandas==1.0.5
+cx-Oracle==8.0.0
+imblearn==0.0
+kmodes==0.10.2

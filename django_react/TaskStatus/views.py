@@ -1,5 +1,5 @@
 from django.shortcuts import render
-import slow_task_processing
+#import slow_task_processing
 import pandas as pd
 import cx_Oracle
 import configparser
