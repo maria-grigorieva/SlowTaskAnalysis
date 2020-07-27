@@ -67,20 +67,24 @@ function GotDurationData(data){
 
     // Icons in the table, representing load from server button, loading, ready and error icons and
     // a button to build ParCoords diagram
-    let load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
+    let link_btn = (id) => {return '<a href="/task/'+ id +'/" target="_blank" rel="noopener noreferrer" ' +
+            'class="duration-img"><img data-type="link" src="/static/images/external-link.png" title="Open in new tab" ' +
+            'class="duration-img duration-load"></a>'; },
+        load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
             'title="Load the data" class="duration-img duration-load">',
         loading_icon = '<img src="/static/ParallelCoordinates/loading.gif" data-type="loading" ' +
             'title="The data is loading" class="duration-img hidden img-unclickable">',
         ready_icon = '<img src="/static/images/checkmark.png" data-type="ready" ' +
             'title="The data is loaded. Click to load the data again." class="duration-img hidden">',
         error_icon = '<img src="/static/images/delete.png" data-type="ready" ' +
-            'title="There was an error. Please try to load the data again." class="duration-img hidden img-unclickable">',
+            'title="There was an error. Please try to load the data again." ' +
+            'class="duration-img hidden img-unclickable">',
         forward_btn = '<img src="/static/images/forward.png" data-type="run" ' +
             'title="Build ParCoords diagrams" class="duration-img hidden">';
 
     this.duration = {
         _storage: {},
-        _header: ['taskid', "time", ''].map((x, i) => {
+        _header: ['TaskID', "Execution time, days", 'Status', 'Prodsourcelabel', ''].map((x, i) => {
             return {
                 title: x,
                 className: (i === 0) ? 'firstCol' : '',
@@ -90,7 +94,7 @@ function GotDurationData(data){
                     if (type === 'display' && !isNaN(data))
                         return numberWithSpaces(parseFloat(Number(data).toFixed(2)));
 
-                    if (data==='btns') return load_btn + loading_icon + ready_icon + error_icon + forward_btn;
+                    if (data==='btns') return link_btn(full[0]) + load_btn + loading_icon + ready_icon + error_icon + forward_btn;
 
                     return data;
                 }
@@ -109,18 +113,20 @@ function GotDurationData(data){
             data: this.duration._cells,
             columns: this.duration._header,
             mark: true,
+            bAutoWidth: false,
             dom: 'ABlfrtip',
             buttons: ['copy', 'csv'],
             "order": [[ 1, "desc" ]],
             "searching": false
         });
-    $('#slowest-tasks-list').css('width', '300px');
+    $('#slowest-tasks-list')
+        .addClass("hover");
 
     $('#slowest-tasks-list tbody').on( 'click', 'img', function () {
         let jeditaskid = window._duration_table.row($(this).parents('tr')).data()[0].toString();
 
-        if (this.dataset.type==='run') RunParCoords(jeditaskid);
-        else if (this.dataset.type==='loading') return;
+        if (this.dataset.type === 'run') RunParCoords(jeditaskid);
+        else if (['loading', 'link'].includes(this.dataset.type)) return;
         else PreLoadIDinfo(jeditaskid);
     });
 }
@@ -147,19 +153,21 @@ function DrawBoxPlot(data){
     $('#duration-boxplot').show();
 
     let plot_data = {
-        'done': [],
-        'finished': [],
-        'aborted': [],
-        'exhausted': [],
-        'failed': [],
-        'obsolete': [],
-        'broken': [],
-        'ready': []
-    },
+            'done': [],
+            'finished': [],
+            'aborted': [],
+            'exhausted': [],
+            'failed': [],
+            'obsolete': [],
+            'broken': [],
+            'ready': []
+        },
         traces = [],
         layout = {
+            yaxis: { title: 'Execution time, days' },
             title: 'Box Plot: Distribution of tasks execution time by statuses'
-        };
+        },
+        config = {responsive: true};
 
     data.data.forEach((x) => plot_data[x[1]].push(x[0]));
 
@@ -171,7 +179,7 @@ function DrawBoxPlot(data){
                 name: x,
                 boxpoints: 'Outliers'
             }));
-    Plotly.newPlot('duration-boxplot', traces, layout);
+    Plotly.newPlot('duration-boxplot', traces, layout, config);
 }
 
 // If DatesChosen() ajax request fails, this function is called
@@ -225,32 +233,32 @@ function IDtoTable(id){
 
 // Change buttons in the table when a task info is loading
 function IDLoading(id){
-    let node = this._duration_table.cell(IDtoTable(id), 2).node();
-    $($(node).children()[0]).hide();
-    $($(node).children()[1]).show();
-    $($(node).children()[2]).hide();
+    let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
+    $($(node).children()[1]).hide();
+    $($(node).children()[2]).show();
     $($(node).children()[3]).hide();
     $($(node).children()[4]).hide();
+    $($(node).children()[5]).hide();
 }
 
 // Change buttons in the table when a task info is loaded
 function IDLoaded(id){
-    let node = this._duration_table.cell(IDtoTable(id), 2).node();
-    $($(node).children()[0]).hide();
+    let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
     $($(node).children()[1]).hide();
-    $($(node).children()[2]).show();
-    $($(node).children()[3]).hide();
-    $($(node).children()[4]).show();
+    $($(node).children()[2]).hide();
+    $($(node).children()[3]).show();
+    $($(node).children()[4]).hide();
+    $($(node).children()[5]).show();
 }
 
 // Change buttons in the table when a task info request has failed
 function IDErrored(id, error = 'There was an error. Please try to load the data again.'){
-    let node = this._duration_table.cell(IDtoTable(id), 2).node();
-    $($(node).children()[0]).show();
-    $($(node).children()[1]).hide();
+    let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
+    $($(node).children()[1]).show();
     $($(node).children()[2]).hide();
-    $($(node).children()[3]).show().attr('title', error);
-    $($(node).children()[4]).hide();
+    $($(node).children()[3]).hide();
+    $($(node).children()[4]).show().attr('title', error);
+    $($(node).children()[5]).hide();
 }
 
 // Send a request to the database about a taskid. Used in /task/ page.

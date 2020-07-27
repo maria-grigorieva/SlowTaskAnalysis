@@ -155,12 +155,13 @@ body{
 }
 
 .duration-box{
-	height: calc(100% - 54px);
 	color: black;
 	margin: 10px;
 	padding: 5px;
 	border-radius: 5px;
 	text-align: center;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 .duration-box h1{
@@ -201,6 +202,12 @@ body{
 	cursor: unset;
 }
 
+#slowest-tasks-list_wrapper{
+	width: min-content;
+	margin-left: auto;
+	margin-right: auto;
+}
+
 #slowest-tasks-list_wrapper .ui-button{
     margin-bottom: 3px;
 	padding: 3px;
@@ -208,6 +215,15 @@ body{
 
 #slowest-tasks-list_length{
 	float: right;
+}
+
+#slowest-tasks-list td{
+	white-space: nowrap;
+	text-align: center;
+}
+
+#slowest-tasks-list tr th:last-child div{
+	width:90px;
 }
 
 /* Description box */
