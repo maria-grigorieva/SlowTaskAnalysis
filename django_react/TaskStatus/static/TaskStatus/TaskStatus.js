@@ -68,8 +68,10 @@ function GotDurationData(data){
     // Icons in the table, representing load from server button, loading, ready and error icons and
     // a button to build ParCoords diagram
     let link_btn = (id) => {return '<a href="/task/'+ id +'/" target="_blank" rel="noopener noreferrer" ' +
-            'class="duration-img"><img data-type="link" src="/static/images/external-link.png" title="Open in new tab" ' +
-            'class="duration-img duration-load"></a>'; },
+            'class="duration-img"> ' + numberWithSpaces(parseFloat(Number(id).toFixed(2))) +
+            //'  <img data-type="link" src="/static/images/external-link.png" title="Open in new tab" ' +
+            //'class="duration-img duration-load" style="width:10px;height:10px;">' +
+            '</a>'; },
         load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
             'title="Load the data" class="duration-img duration-load">',
         loading_icon = '<img src="/static/ParallelCoordinates/loading.gif" data-type="loading" ' +
@@ -84,17 +86,18 @@ function GotDurationData(data){
 
     this.duration = {
         _storage: {},
-        _header: ['TaskID', "Execution time, days", 'Status', 'Prodsourcelabel', ''].map((x, i) => {
+        _header: ['TaskID', "Execution time, days", 'Status', ''].map((x, i) => {
             return {
                 title: x,
                 className: (i === 0) ? 'firstCol' : '',
 
                 // Add spaces and remove too much numbers after the comma
-                "render": function (data, type, full) {
+                "render": function (data, type, full, cell) {
                     if (type === 'display' && !isNaN(data))
-                        return numberWithSpaces(parseFloat(Number(data).toFixed(2)));
+                        if (cell.col === 0) return link_btn(data);
+                        else return numberWithSpaces(parseFloat(Number(data).toFixed(2)));
 
-                    if (data==='btns') return link_btn(full[0]) + load_btn + loading_icon + ready_icon + error_icon + forward_btn;
+                    if (data==='btns') return load_btn + loading_icon + ready_icon + error_icon + forward_btn;
 
                     return data;
                 }
@@ -234,31 +237,31 @@ function IDtoTable(id){
 // Change buttons in the table when a task info is loading
 function IDLoading(id){
     let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
-    $($(node).children()[1]).hide();
-    $($(node).children()[2]).show();
+    $($(node).children()[0]).hide();
+    $($(node).children()[1]).show();
+    $($(node).children()[2]).hide();
     $($(node).children()[3]).hide();
     $($(node).children()[4]).hide();
-    $($(node).children()[5]).hide();
 }
 
 // Change buttons in the table when a task info is loaded
 function IDLoaded(id){
     let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
+    $($(node).children()[0]).hide();
     $($(node).children()[1]).hide();
-    $($(node).children()[2]).hide();
-    $($(node).children()[3]).show();
-    $($(node).children()[4]).hide();
-    $($(node).children()[5]).show();
+    $($(node).children()[2]).show();
+    $($(node).children()[3]).hide();
+    $($(node).children()[4]).show();
 }
 
 // Change buttons in the table when a task info request has failed
 function IDErrored(id, error = 'There was an error. Please try to load the data again.'){
     let node = this._duration_table.cell(IDtoTable(id), ':last-child').node();
-    $($(node).children()[1]).show();
+    $($(node).children()[0]).show();
+    $($(node).children()[1]).hide();
     $($(node).children()[2]).hide();
-    $($(node).children()[3]).hide();
-    $($(node).children()[4]).show().attr('title', error);
-    $($(node).children()[5]).hide();
+    $($(node).children()[3]).show().attr('title', error);
+    $($(node).children()[4]).hide();
 }
 
 // Send a request to the database about a taskid. Used in /task/ page.
@@ -347,7 +350,8 @@ function BuildParCoords(data) {
                     strict_naming: true,
                     values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
                         'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR_CODE']   // Features to be shown on diagram by default
-                }
+                },
+                table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS', 'STATUS_LEVEL', 'ERROR_CODE']
             },
             worker: {
                 enabled: true,
@@ -385,7 +389,10 @@ function SwitchDiagram(type, user_approved = false){
     if (type === 'scouts') label = 'Scouts';
     else if (type === 'finished') label = 'Finished';
     else if (type === 'failed') label = 'Failed';
-    else if (type === 'pre_failed') label = 'Pre-Failed';
+    else if (type === 'pre_failed') {
+        label = 'Pre-Failed';
+        if (!options.skip.dims.values.includes('PRE-FAILED')) options.skip.dims.values.push('PRE-FAILED');
+    }
 
     $('#parcoords-diagram-label').text(label);
 

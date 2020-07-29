@@ -419,7 +419,7 @@ def get_slowest_user_tasks(connection, start_time, end_time):
     cursor = connection.cursor()
     query = SQL_SCRIPTS['slowest_user_tasks'].format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
-                        columns=['taskid', 'duration', 'status', 'prodsourcelabel'])
+                        columns=['taskid', 'duration', 'status'])
 
 
 def get_boxplot_information(connection, start_time, end_time):
