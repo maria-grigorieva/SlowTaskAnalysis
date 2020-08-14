@@ -226,6 +226,17 @@ body{
 	width:90px;
 }
 
+.top-link-img{
+	width: 10px;
+	height: 10px;
+	padding-left: 3px;
+}
+
+#slowest-tasks-list a{
+	color: black;
+	text-decoration: none;
+}
+
 /* Description box */
 .description-wrapper{
 	width: 100%;

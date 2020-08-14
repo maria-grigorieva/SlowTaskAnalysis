@@ -69,24 +69,24 @@ function GotDurationData(data){
     // a button to build ParCoords diagram
     let link_btn = (id) => {return '<a href="/task/'+ id +'/" target="_blank" rel="noopener noreferrer" ' +
             'class="duration-img"> ' + numberWithSpaces(parseFloat(Number(id).toFixed(2))) +
-            //'  <img data-type="link" src="/static/images/external-link.png" title="Open in new tab" ' +
+            '  <img class="top-link-img" data-type="link" src="/static/images/external-link.png" title="Open in new tab"> ' +
             //'class="duration-img duration-load" style="width:10px;height:10px;">' +
             '</a>'; },
-        load_btn = '<img data-type="load" src="/static/images/load-from-cloud.png" ' +
-            'title="Load the data" class="duration-img duration-load">',
+        load_btn = '<img data-type="load" src="/static/images/view.png" ' +
+            'title="Prepare the diagram" class="duration-img duration-load">',
         loading_icon = '<img src="/static/ParallelCoordinates/loading.gif" data-type="loading" ' +
-            'title="The data is loading" class="duration-img hidden img-unclickable">',
+            'title="Data is loading" class="duration-img hidden img-unclickable">',
         ready_icon = '<img src="/static/images/checkmark.png" data-type="ready" ' +
-            'title="The data is loaded. Click to load the data again." class="duration-img hidden">',
+            'title="Data is ready" class="duration-img hidden">',
         error_icon = '<img src="/static/images/delete.png" data-type="ready" ' +
             'title="There was an error. Please try to load the data again." ' +
             'class="duration-img hidden img-unclickable">',
-        forward_btn = '<img src="/static/images/forward.png" data-type="run" ' +
-            'title="Build ParCoords diagrams" class="duration-img hidden">';
+        forward_btn = '<img src="/static/images/line-chart.png" data-type="run" ' +
+            'title="Draw Parallel Coordinates diagram" class="duration-img hidden">';
 
     this.duration = {
         _storage: {},
-        _header: ['TaskID', "Execution time, days", 'Status', ''].map((x, i) => {
+        _header: ['TaskID', "Execution time, days", 'Status', 'Diagram controls'].map((x, i) => {
             return {
                 title: x,
                 className: (i === 0) ? 'firstCol' : '',
@@ -349,7 +349,7 @@ function BuildParCoords(data) {
                     mode: "show",       // Skip mode: show, hide, none
                     strict_naming: true,
                     values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
-                        'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR_CODE']   // Features to be shown on diagram by default
+                        'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR']   // Features to be shown on diagram by default
                 },
                 table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS', 'STATUS_LEVEL', 'ERROR_CODE']
             },
@@ -411,6 +411,31 @@ function SwitchDiagram(type, user_approved = false){
     $('#parcoords-too-much-data').hide();
     $('#parcoords-diagram').show();
 
+    let columns = pdata[type]['columns'],
+        data = pdata[type]['data'];
+
+    if (data.length !== 0){
+        if (!columns.includes('ERROR')) columns.push('ERROR');
+
+        let error_fields = ['EXEERRORCODE', 'EXEERRORDIAG', 'SUPERRORCODE', 'SUPERRORDIAG',
+            'DDMERRORCODE', 'DDMERRORDIAG', 'TASKBUFFERERRORCODE', 'TASKBUFFERERRORDIAG',
+            'PILOTERRORCODE', 'PILOTERRORDIAG'],
+            error_index = error_fields.map((x) => columns.indexOf(x)),
+
+            errors = data.map((x) => x.reduce((con, x, i) => {
+                if (i === 1 && !error_index.includes(0)) con = '';
+                if (error_index.includes(i) && !['None', '0'].includes(x))
+                    con += columns[i].endsWith('CODE') ? x.concat(': ') : x.concat(' | ');
+                return con;
+                })
+            );
+
+        data = data.map((x, i) => x.concat([(errors[i] === '') ? 'None' : errors[i].slice(0, -2)]));
+
+        this.parcoords._options.skip.table_hide_columns =
+            this.parcoords._options.skip.table_hide_columns.concat(error_fields);
+    }
+
     if (this.parcoords._diagram === undefined){
         if (pdata[type]['data'].length === 0) {
             if (type === 'scouts') SwitchDiagram('finished');
@@ -419,11 +444,11 @@ function SwitchDiagram(type, user_approved = false){
             return;
         }
         this.parcoords._diagram = new ParallelCoordinates("parcoords-diagram",
-            pdata[type]['columns'], pdata[type]['data'], clustering, null, options);
+            columns, data, clustering, null, options);
     }
     else
-        this.parcoords._diagram.updateData("parcoords-diagram", pdata[type]['columns'],
-            pdata[type]['data'], clustering, null, options);
+        this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
+            clustering, null, options);
 }
 
 // If an ajax request fails, this function is called
