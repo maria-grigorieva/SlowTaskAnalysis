@@ -11,10 +11,7 @@ import csv
 
 from airflow.models import DAG
 from airflow.operators.python_operator import PythonOperator
-from airflow.models import Variable
 
-#CONNECTION_STRING = Variable.get("connection_string")
-#BASE_DIR = Variable.get("base_dir")
 
 args = {
     'owner': 'InVEx',
@@ -43,7 +40,7 @@ _mappings = {
     },
     "date": {
         "type": "date",
-        "format": "yyyy-MM-dd HH:m:ss"
+        "format": "yyyy-MM-dd"
     },
     "geo": {"type": "geo_point"},
     "integer": {"type": "integer"},
@@ -98,16 +95,13 @@ def extract_data(**kwargs):
 
 # [START push_to_elasticsearch]
 def push_to_elasticsearch(**kwargs):
-    print('push')
-    return
-
     execution_date = kwargs['execution_date']
 
     ti = kwargs['ti']
     file_path = ti.xcom_pull(key='output_path')
     if os.path.exists(file_path):
         connection = Elasticsearch(hosts=["localhost"])
-        index_name = f"data-popularity-v1-{execution_date.strftime('%Y-%m')}"
+        index_name = f"queues-metrics-v1-{execution_date.strftime('%Y-%m')}"
         print(f"Index to push inside: {index_name}")
         if not connection.indices.exists(index=index_name):
             print(f"Creating index: {index_name}")
