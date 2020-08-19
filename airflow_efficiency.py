@@ -20,7 +20,7 @@ args = {
 
 # DAG description
 dag = DAG(
-    dag_id='data-acquisition',
+    dag_id='site_efficiency',
     default_args=args,
     schedule_interval='10 0 * * *',
     max_active_runs=2,
