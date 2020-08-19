@@ -17,6 +17,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf.urls import url
 from TaskStatus import views
+from TaskStatus.database import database
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,7 +25,7 @@ urlpatterns = [
     # Single task analysis
     path('task/', views.task_index),
     path('task/<int:jeditaskid>/', views.task_index_preselected),
-    url('ajax/request_db', views.request_db, name='request_db'),
+    url('ajax/request_db', database.request_db, name='request_db'),
 
     # Duration analysis
     path('', views.duration_index),
