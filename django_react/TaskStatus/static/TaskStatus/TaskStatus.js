@@ -349,9 +349,11 @@ function BuildParCoords(data) {
                     mode: "show",       // Skip mode: show, hide, none
                     strict_naming: true,
                     values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
-                        'COMPUTINGSITE','SITE_EFFICIENCY', 'ERROR']   // Features to be shown on diagram by default
+                        'COMPUTINGSITE','SITE_EFFICIENCY', 'EFFICIENCY', 'ERROR']
+                                        // Features to be shown on diagram by default
                 },
-                table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS', 'STATUS_LEVEL', 'ERROR_CODE']
+                table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS',
+                    'STATUS_LEVEL', 'ERROR_CODE']
             },
             worker: {
                 enabled: true,
@@ -359,6 +361,11 @@ function BuildParCoords(data) {
             }
         }
     };
+
+    d3.select('#color_div')
+        .append('select')
+            .attr({'class': 'select',
+                    'id': 'color_selector'});
 
     $('#scouts_button').prop('title', 'Objects count: ' + this.parcoords._data.scouts.data.length);
     $('#finished_button').prop('title', 'Objects count: ' + this.parcoords._data.finished.data.length);
@@ -380,11 +387,14 @@ function BuildParCoords(data) {
 }
 
 // Function to switch between diagram types: 'scouts', 'finished', etc.
-function SwitchDiagram(type, user_approved = false){
+function SwitchDiagram(type, user_approved = false, selector_changed = false){
     let pdata = this.parcoords._data,
         options = this.parcoords._options,
         clustering = (type === 'pre_failed') ? 'PRE-FAILED' : 'JOBSTATUS',
         label = '';
+
+    this._current_type = type;
+    if (selector_changed) clustering = selector_changed;
 
     if (type === 'scouts') label = 'Scouts';
     else if (type === 'finished') label = 'Finished';
@@ -403,7 +413,8 @@ function SwitchDiagram(type, user_approved = false){
                 .show()
                 .html('The request contains a lot of objects (' + pdata[type].data.length + ') and the diagram ' +
                     'may take a significant time to build. ' +
-                    'Are you sure? <button onclick="SwitchDiagram(\'' + type + '\', true)">Yes</button>');
+                    'Are you sure? <button onclick="SwitchDiagram(\'' + type + '\', ' +
+                        'true, ' + selector_changed + ')">Yes</button>');
             $('#parcoords-diagram').hide();
             return;
         }
@@ -443,12 +454,37 @@ function SwitchDiagram(type, user_approved = false){
             else if (type === 'failed') SwitchDiagram('pre_failed');
             return;
         }
+
         this.parcoords._diagram = new ParallelCoordinates("parcoords-diagram",
             columns, data, clustering, null, options);
     }
     else
         this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
             clustering, null, options);
+
+    this._selector = $('#color_selector').select2({
+            closeOnSelect: true,
+            data: columns.map((d) => {
+                return {id: d, text: d};
+            }),
+            width: 150
+        })
+            .on("change.select2", () => {
+                //colorchange();
+                //console.log('changecol', object._selector.find(':selected').value);
+                if (this._selector_ready)
+                    this.SwitchDiagram(this._current_type, false,
+                        this._selector.find(':selected')[0].value);
+                else this._selector_ready = true;
+                //object
+                //this._graph_features = $('#s' + this.element_id).val();
+                //theData._coord
+            });
+
+    this._selector_ready = false;
+    this._selector.val(clustering).trigger('change');
+
+    //this._selector.trigger('change');
 }
 
 // If an ajax request fails, this function is called

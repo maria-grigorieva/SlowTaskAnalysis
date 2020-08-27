@@ -15,16 +15,26 @@ from airflow.operators.python_operator import PythonOperator
 
 args = {
     'owner': 'InVEx',
-    'start_date': dt.datetime(2020, 8, 18, 00, 00, 00),
+    'start_date': dt.datetime(2020, 6, 1, 00, 00, 00),
 }
 
 # DAG description
+# The first one is to calculate and load the data
 dag = DAG(
     dag_id='site_efficiency',
     default_args=args,
     schedule_interval='10 0 * * *',
-    max_active_runs=2,
+    max_active_runs=4,
     tags=['panda', 'oracle', 'elasticsearch']
+)
+
+# The second one is to clear ES if needed
+dag_clear = DAG(
+    dag_id='site_efficiency_clear',
+    default_args=args,
+    schedule_interval=None,
+    max_active_runs=1,
+    tags=['elasticsearch']
 )
 
 # Mapping types
@@ -103,6 +113,7 @@ def push_to_elasticsearch(**kwargs):
         connection = Elasticsearch(hosts=["localhost"])
         index_name = f"queues-metrics-v1-{execution_date.strftime('%Y-%m')}"
         print(f"Index to push inside: {index_name}")
+
         if not connection.indices.exists(index=index_name):
             print(f"Creating index: {index_name}")
             connection.indices.create(index=index_name, body=mapping)
@@ -114,6 +125,14 @@ def push_to_elasticsearch(**kwargs):
     else:
         print(f"Nothing to push, file not found: {file_path}")
 # [END push_to_elasticsearch]
+
+
+# [START clear_elasticsearch]
+def clear_elasticsearch(**kwargs):
+    connection = Elasticsearch(hosts=["localhost"])
+    if connection.indices.exists(index="queues-metrics-v1-*"):
+        connection.indices.delete(index="queues-metrics-v1-*")
+# [END clear_elasticsearch]
 
 
 t1 = PythonOperator(
@@ -128,6 +147,13 @@ t2 = PythonOperator(
     provide_context=True,
     python_callable=push_to_elasticsearch,
     dag=dag,
+)
+
+t3 = PythonOperator(
+    task_id='clear_elasticsearch',
+    provide_context=True,
+    python_callable=clear_elasticsearch,
+    dag=dag_clear
 )
 
 t1 >> t2

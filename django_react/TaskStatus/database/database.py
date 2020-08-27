@@ -5,6 +5,7 @@ from collections import OrderedDict
 import json
 import os
 import numpy as np
+from elasticsearch import Elasticsearch
 from kmodes.kmodes import KModes
 from django.http import JsonResponse
 from TaskStatus.database.site import get_site_info
@@ -21,6 +22,15 @@ CONN_INFO = {
     'service': config['ORACLE']['service'],
 }
 CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
+
+# ElasticSearch connection
+ES_CONN_INFO = {
+    'host': config['ELASTICSEARCH']['host'],
+    'port': config['ELASTICSEARCH']['port'],
+    'user': config['ELASTICSEARCH']['user'],
+    'psw': config['ELASTICSEARCH']['pwd']
+}
+ES_CONN_STR = '{user}:{psw}@{host}:{port}'.format(**ES_CONN_INFO)
 
 # Read sql scripts
 SQL_DIR = 'TaskStatus/database/sql/'
@@ -54,8 +64,6 @@ def request_db(request):
             connection = cx_Oracle.connect(CONN_STR)
             start = request.GET.get('start-time', None)
             end = request.GET.get('end-time', None)
-
-            print(get_sites_efficiency(connection, start, end))
 
             result = get_slowest_user_tasks(connection, start, end) \
                 .astype(str).to_dict('split')
@@ -123,20 +131,27 @@ def get_taskid_information(jeditaskid):
             jobs_finished_count = jobs_status_table['finished']
             jobs_failed_count = jobs_status_table['failed']
 
-            """
+            # Copy a slice of data to modify time values
+            timings_long = statuses[['START_TS', 'END_TS', 'COMPUTINGSITE']].copy()
+
+            # Zero out hours, minutes and seconds
+            for col in ["START_TS", "END_TS"]:
+                for row in range(len(timings_long.index)):
+                    timings_long.at[row, col] = timings_long\
+                        .at[row, col].replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Remove duplicates to reduce load on the ES
+            timings = timings_long.drop_duplicates().reset_index(drop=True)
+
             # Retrieve task sites and efficiency
-            task_sites = get_task_sites(connection, jeditaskid)
+            # task_sites = get_task_sites(connection, jeditaskid)
+            efficiency = get_sites_efficiency_from_es(timings)
 
-            # Efficiency disabled for now
-            efficiency = sites_efficiency(connection, jeditaskid, min_time, max_time, task_sites)
-
-            print(efficiency)
+            # Put duplicates back
+            timings_long = pd.merge(timings_long, efficiency, how='left', on=['START_TS', 'END_TS', 'COMPUTINGSITE'])
 
             # Merge jobs with the efficiency of the site it was processed on
-            print("[" + str(jeditaskid) + "] Initial size: {}".format(statuses.shape))
-            statuses = pd.merge(statuses, efficiency, how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
-            print("[" + str(jeditaskid) + "] After merge: {}".format(statuses.shape))
-            """
+            statuses['EFFICIENCY'] = timings_long['EFFICIENCY']
 
             # Separate scout jobs from non-scouts
             scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
@@ -149,17 +164,6 @@ def get_taskid_information(jeditaskid):
 
             # List failed jobs with statuses prior to the failed ones
             pre_failed_statuses = pre_failed(failed)
-
-            # Not used
-            #
-            # sampled_statuses = pd.merge(sampled_statuses, efficiency,
-            #                         how='left', on=['COMPUTINGSITE', 'DATE_TRUNCATED'])
-            # sequences = sequences_of_statuses(sampled_statuses)
-            # statuses = sampled_statuses.astype(str)
-            # _tmpl_sequences = {}
-            # for seq in sequences:
-            #     sequences[seq] = sequences[seq].astype(str)
-            #     _tmpl_sequences[seq] = sequences[seq].to_dict('split')
 
             # Form the result
             result = {'pre_failed': pre_failed_statuses.astype(str).to_dict('split'),
@@ -272,7 +276,7 @@ def get_task_sites(connection, taskid):
     cursor = connection.cursor()
     query = SQL_SCRIPTS['task_sites'].format(taskid)
     sites_list = [row[0] for row in cursor.execute(query)]
-    return ','.join("'{0}'".format(w) for w in sites_list)
+    return sites_list  # ','.join("'{0}'".format(w) for w in sites_list)
 
 
 def get_sites_efficiency(connection, min_time, max_time):
@@ -319,6 +323,78 @@ def get_sites_efficiency(connection, min_time, max_time):
     return result
 
 
+def get_sites_efficiency_from_es(timings):
+    """
+    Calculates efficiency from ES cache.
+
+    :param timings: Array containing site name, start and end time
+    :return: Efficiency values as a DataFrame
+    """
+    # Establish connection
+    es = Elasticsearch([ES_CONN_STR])
+    result = pd.DataFrame(index=[0], columns=['START_TS', 'END_TS', 'COMPUTINGSITE', 'EFFICIENCY'])
+
+    # Calculate efficiency for every site
+    for index, row in timings.iterrows():
+        site = row.to_dict()
+
+        # Specify the query
+        query = {
+            "_source": False if site["START_TS"] != site["END_TS"] else ['site_efficiency'],
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "range": {
+                                "tstamp_day": {
+                                    "gte": site["START_TS"],  # .replace(hour=0, minute=0, second=0, microsecond=0),
+                                    "lte": site["END_TS"]     # .replace(hour=0, minute=0, second=0, microsecond=0)
+                                }
+                            }
+                        } if site["START_TS"] != site["END_TS"] else {
+                            "match": {
+                                "tstamp_day": site["START_TS"]
+                            }
+                        },
+                        {
+                            "term": {
+                                "site_name.keyword": site["COMPUTINGSITE"]
+                            }
+                        }
+                    ]
+                }
+            },
+            "aggs": {
+                "finished_jobs_total": {
+                    "sum": {
+                        "field": "finished_jobs"
+                    }
+                },
+                "failed_jobs_total": {
+                    "sum": {
+                        "field": "failed_jobs"
+                    }
+                }
+            }
+        }
+
+        # Make a search
+        search = es.search(index='queues-metrics-v1-*', body=query)
+        fin = search['aggregations']['finished_jobs_total']['value']
+        fail = search['aggregations']['failed_jobs_total']['value']
+        eff = 0 if site["START_TS"] != site["END_TS"] else 0 if search['hits']['total']['value'] == 0 else\
+            search['hits']['hits'][0]['_source']['site_efficiency']
+
+        result = pd.concat([result, pd.DataFrame({
+            "START_TS": site["START_TS"],
+            "END_TS": site["END_TS"],
+            "COMPUTINGSITE": site["COMPUTINGSITE"],
+            "EFFICIENCY": eff if site["START_TS"] != site["END_TS"] else 0 if fin+fail <= 0 else fin/(fin+fail)
+        }, index=[0], columns=['START_TS', 'END_TS', 'COMPUTINGSITE', 'EFFICIENCY'])])
+
+    return result.iloc[1:].reset_index(drop=True)
+
+
 def statuses_duration(df):
     """
     Calculates duration of each job status by modificationtime delta
@@ -328,6 +404,7 @@ def statuses_duration(df):
 
     frames = []
     for k, v in df.groupby(['PANDAID']):
+        v = v.loc[:]
         v.sort_values(by=['MODIFTIME_EXTENDED'], inplace=True)
         v['START_TS'] = pd.to_datetime(v['MODIFTIME_EXTENDED'])
         v['END_TS'] = v['START_TS'].shift(-1).fillna(v['START_TS'])
@@ -360,6 +437,7 @@ def pre_failed(df):
     """
     frames = []
     for k, v in df.groupby('PANDAID'):
+        v = v.loc[:]
         v.sort_values(by=['MODIFTIME_EXTENDED'], ascending=True, inplace=True)
         # v.drop(v[v['JOBSTATUS'] == 'failed'].index, inplace=True)
         v.rename(columns={"JOBSTATUS": "PRE-FAILED"}, inplace=True)

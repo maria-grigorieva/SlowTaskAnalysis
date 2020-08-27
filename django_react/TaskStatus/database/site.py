@@ -3,13 +3,20 @@
 
 import urllib.parse
 import requests
+import json
+
+# Verify the certificate
+import urllib3
+http = urllib3.PoolManager(
+    cert_reqs='CERT_REQUIRED',
+    ca_certs='certs/atlas-cric-2-cern-ch-chain.pem')
 
 # CRIC API
 cric_base_url = 'https://atlas-cric.cern.ch/'
 url_site = urllib.parse.urljoin(cric_base_url, 'api/atlas/site/query/?json&state=ANY')
 url_queue = urllib.parse.urljoin(cric_base_url, 'api/atlas/pandaqueue/query/?json')
-cric_sites = requests.get(url_site, verify=False).json()
-cric_queues = requests.get(url_queue, verify=False).json()
+cric_sites = json.loads(http.request('GET', url_site).data.decode('utf-8'))
+cric_queues = json.loads(http.request('GET', url_queue).data.decode('utf-8'))
 
 # list of countries
 url_countries = 'https://raw.githubusercontent.com/mledoze/countries/master/dist/countries.json'
