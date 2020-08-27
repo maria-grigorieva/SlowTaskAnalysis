@@ -347,13 +347,13 @@ def get_sites_efficiency_from_es(timings):
                         {
                             "range": {
                                 "tstamp_day": {
-                                    "gte": site["START_TS"],  # .replace(hour=0, minute=0, second=0, microsecond=0),
-                                    "lte": site["END_TS"]     # .replace(hour=0, minute=0, second=0, microsecond=0)
+                                    "gte": site["START_TS"].to_pydatetime().strftime("%Y-%m-%d"),
+                                    "lte": site["END_TS"].to_pydatetime().strftime("%Y-%m-%d")
                                 }
                             }
                         } if site["START_TS"] != site["END_TS"] else {
                             "match": {
-                                "tstamp_day": site["START_TS"]
+                                "tstamp_day": site["START_TS"].to_pydatetime().strftime("%Y-%m-%d")
                             }
                         },
                         {
