@@ -362,10 +362,11 @@ function BuildParCoords(data) {
         }
     };
 
-    d3.select('#color_div')
-        .append('select')
-            .attr({'class': 'select',
-                    'id': 'color_selector'});
+    if (this._selector_div === undefined)
+        this._selector_div = d3.select('#color_div')
+            .append('select')
+                .attr({'class': 'select',
+                        'id': 'color_selector'});
 
     $('#scouts_button').prop('title', 'Objects count: ' + this.parcoords._data.scouts.data.length);
     $('#finished_button').prop('title', 'Objects count: ' + this.parcoords._data.finished.data.length);
@@ -467,24 +468,17 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             data: columns.map((d) => {
                 return {id: d, text: d};
             }),
-            width: 150
+            width: 230
         })
             .on("change.select2", () => {
-                //colorchange();
-                //console.log('changecol', object._selector.find(':selected').value);
                 if (this._selector_ready)
                     this.SwitchDiagram(this._current_type, false,
                         this._selector.find(':selected')[0].value);
                 else this._selector_ready = true;
-                //object
-                //this._graph_features = $('#s' + this.element_id).val();
-                //theData._coord
             });
 
     this._selector_ready = false;
     this._selector.val(clustering).trigger('change');
-
-    //this._selector.trigger('change');
 }
 
 // If an ajax request fails, this function is called

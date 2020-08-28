@@ -237,6 +237,10 @@ body{
 	text-decoration: none;
 }
 
+#color_div{
+	text-align: center;
+}
+
 /* Description box */
 .description-wrapper{
 	width: 100%;
