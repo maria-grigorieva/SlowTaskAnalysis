@@ -1,3 +1,15 @@
+// Function to remove a specific item from an array
+Array.prototype.remove = function() {
+    var what, a = arguments, L = a.length, ax;
+    while (L && this.length) {
+        what = a[--L];
+        while ((ax = this.indexOf(what)) !== -1) {
+            this.splice(ax, 1);
+        }
+    }
+    return this;
+};
+
 // Function to switch between 'Task Analysis' and 'Parallel Coordinates' tabs
 function ChangeTab(tab){
     $(tab).parent().children().removeClass('header-button-selected');
@@ -33,7 +45,8 @@ function DatesChosen(){
         end_time = $('#duration-finish').val();
 
     // Request slowest tasks list
-    $.ajax({
+    if (this._ajax_slowest !== undefined) this._ajax_slowest.abort();
+    this._ajax_slowest = $.ajax({
         url: '/ajax/request_db',
         data: { 'type': 'get-slowest-tasks', 'start-time': start_time, 'end-time' : end_time},
         dataType: 'json',
@@ -43,7 +56,8 @@ function DatesChosen(){
     });
 
     // Request boxplot info
-    $.ajax({
+    if (this._ajax_boxplot !== undefined) this._ajax_boxplot.abort();
+    this._ajax_boxplot = $.ajax({
         url: '/ajax/request_db',
         data: { 'type': 'get-boxplot-information', 'start-time': start_time, 'end-time' : end_time},
         dataType: 'json',
@@ -84,6 +98,7 @@ function GotDurationData(data){
         forward_btn = '<img src="/static/images/line-chart.png" data-type="run" ' +
             'title="Draw Parallel Coordinates diagram" class="duration-img hidden">';
 
+    // Prepare header and cells for the table with the slowest tasks
     this.duration = {
         _storage: {},
         _header: ['TaskID', "Execution time, days", 'Status', 'Diagram controls'].map((x, i) => {
@@ -106,13 +121,22 @@ function GotDurationData(data){
         _cells: data.data.map(x => x.concat(['btns']))
     };
 
+    // Correct the label
+    $('#slowest-tasks-label').html('(Tasks with prodsourcelabel=user from ' +
+        document.getElementById('duration-start').value + ' to ' +
+        document.getElementById('duration-finish').value + ')');
+
+    // If the table already exists, clear it and fill with new data
     if(this._duration_table !== undefined){
         this._duration_table.clear().draw();
         this._duration_table.rows.add(this.duration._cells);
         this._duration_table.columns.adjust().draw();
     }
     else
-        this._duration_table = $('#slowest-tasks-list').DataTable({
+        // If not, create a new one
+        this._duration_table = $('#slowest-tasks-list')
+            .addClass("hover")
+            .DataTable({
             data: this.duration._cells,
             columns: this.duration._header,
             mark: true,
@@ -122,9 +146,8 @@ function GotDurationData(data){
             "order": [[ 1, "desc" ]],
             "searching": false
         });
-    $('#slowest-tasks-list')
-        .addClass("hover");
 
+    // Add button handlers
     $('#slowest-tasks-list tbody').on( 'click', 'img', function () {
         let jeditaskid = window._duration_table.row($(this).parents('tr')).data()[0].toString();
 
@@ -134,13 +157,15 @@ function GotDurationData(data){
     });
 }
 
-// Function to set the start and finish date on the Task Analysis page
+// Function to set the start and finish date on the Task Analysis page.
+// types are: 'last-month' and 'last-day'
 function SetDates(type){
     let date = new Date();
+    date.setDate(date.getDate() - 1);
     document.getElementById('duration-finish').value = date.toISOString().split('T')[0];
 
     if (type === 'last-month') date.setMonth(date.getMonth() - 1);
-    else date.setDate(date.getDate() - 1);
+    else date.setDate(date.getDate() - 7);
 
     document.getElementById('duration-start').value = date.toISOString().split('T')[0];
 }
@@ -348,12 +373,13 @@ function BuildParCoords(data) {
                 dims: {
                     mode: "show",       // Skip mode: show, hide, none
                     strict_naming: true,
-                    values: ['PANDAID','DATE_TRUNCATED','JOBSTATUS','DURATION',
-                        'COMPUTINGSITE','SITE_EFFICIENCY', 'EFFICIENCY', 'ERROR']
+                    values: ['PANDAID', 'DATE_TRUNCATED', 'JOBSTATUS', 'DURATION', 'COMPUTINGSITE', 'WALLTIME_HOURS',
+                             'ACTUALCORECOUNT_TOTAL', 'CORECOUNT_TOTAL', 'CPU_UTILIZATION_FIXED', 'CPUTIME_HOURS',
+                             'SITE_EFFICIENCY']
                                         // Features to be shown on diagram by default
                 },
                 table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS',
-                    'STATUS_LEVEL', 'ERROR_CODE']
+                    'STATUS_LEVEL']
             },
             worker: {
                 enabled: true,
@@ -397,6 +423,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
     this._current_type = type;
     if (selector_changed) clustering = selector_changed;
 
+    // Change label and add PRE-FAILED to displayed features list
     if (type === 'scouts') label = 'Scouts';
     else if (type === 'finished') label = 'Finished';
     else if (type === 'failed') label = 'Failed';
@@ -404,11 +431,19 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         label = 'Pre-Failed';
         if (!options.skip.dims.values.includes('PRE-FAILED')) options.skip.dims.values.push('PRE-FAILED');
     }
-
     $('#parcoords-diagram-label').text(label);
+    $('#plotly-scatterplot').empty();
 
+    // Make sure ERROR_CODE will be present on all types except Finished
+    if (type === 'finished')
+        {if (options.skip.dims.values.includes('ERROR_CODE')) options.skip.dims.values.remove('ERROR_CODE');}
+    else if (!options.skip.dims.values.includes('ERROR_CODE')) options.skip.dims.values.push('ERROR_CODE');
+
+    // Switch to offscreen when more than 500 lines present
     this.parcoords._options.worker.offscreen = (pdata[type].data.length > 500);
+    // Show a warning if there are more than 5000 lines to draw
     if (pdata[type].data.length > 5000)
+        // If this operation is approved, go ahead and draw
         if (!user_approved) {
             $('#parcoords-too-much-data')
                 .show()
@@ -426,6 +461,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
     let columns = pdata[type]['columns'],
         data = pdata[type]['data'];
 
+    // Prepare error codes array
     if (data.length !== 0){
         if (!columns.includes('ERROR')) columns.push('ERROR');
 
@@ -437,7 +473,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             errors = data.map((x) => x.reduce((con, x, i) => {
                 if (i === 1 && !error_index.includes(0)) con = '';
                 if (error_index.includes(i) && !['None', '0'].includes(x))
-                    con += columns[i].endsWith('CODE') ? x.concat(': ') : x.concat(' | ');
+                    con += columns[i].endsWith('CODE') ? x.concat(': ') : x.concat(' <br> ');
                 return con;
                 })
             );
@@ -448,7 +484,9 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             this.parcoords._options.skip.table_hide_columns.concat(error_fields);
     }
 
+    // If no diagram was drawn before - init and draw a new one
     if (this.parcoords._diagram === undefined){
+        // If nothing to draw - switch to the next type
         if (pdata[type]['data'].length === 0) {
             if (type === 'scouts') SwitchDiagram('finished');
             else if (type === 'finished') SwitchDiagram('failed');
@@ -460,9 +498,45 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             columns, data, clustering, null, options);
     }
     else
+        // If a diagram is present - update it
         this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
             clustering, null, options);
 
+    // Draw a scatterplot
+    let sid = columns.indexOf('JOBSTATUS'),
+        stime = columns.indexOf('MODIFTIME_EXTENDED'),
+        sunique = data.map(x => x[sid]).filter((x,i,arr) => arr.indexOf(x) === i),
+        straces = sunique.map(x => {
+            let arr = data.filter(y => y[sid] === x);
+            return {
+                name: x,
+                type: 'scatter',
+                mode: 'markers',
+                y: arr.map(val => val[0].toString()),
+                x: arr.map(val => val[stime])
+            }
+        }),
+        slayout = {
+            title: 'Job status profile',
+            xaxis:{
+                tickformat: '%H:%M:%S\n%e %b %Y',
+                title: {
+                    text: 'MODIFTIME_EXTENDED'
+                },
+                domain: [0.1, 1]
+            },
+            yaxis: {
+                tickformat: 'd',
+                type: 'category',
+                title: {
+                    text: 'JOBSTATUS'
+                }
+            }
+        };
+
+    Plotly.newPlot('plotly-scatterplot', straces, slayout);
+
+    // "Color by" selector
     this._selector = $('#color_selector').select2({
             closeOnSelect: true,
             data: columns.map((d) => {

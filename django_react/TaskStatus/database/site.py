@@ -1,5 +1,6 @@
 # Copy of
 # https://gitlab.cern.ch/mgrigori/data-popularity/-/blob/6aa97beab83b740b7a672eadef2c53114fc61675/tasks/datasets/site.py
+# (Modified to accept cric https certificate)
 
 import urllib.parse
 import requests

@@ -232,6 +232,11 @@ body{
 	padding-left: 3px;
 }
 
+#slowest-tasks-label{
+	margin-top: -10px;
+	font-style: italic;
+}
+
 #slowest-tasks-list a{
 	color: black;
 	text-decoration: none;
@@ -239,6 +244,12 @@ body{
 
 #color_div{
 	text-align: center;
+}
+
+#plotly-scatterplot{
+	width: 600px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 /* Description box */

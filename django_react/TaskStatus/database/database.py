@@ -2,9 +2,12 @@ import pandas as pd
 import cx_Oracle
 import configparser
 from collections import OrderedDict
+import traceback
 import json
+import sys
 import os
 import numpy as np
+from time import gmtime, strftime
 from elasticsearch import Elasticsearch
 from kmodes.kmodes import KModes
 from django.http import JsonResponse
@@ -26,11 +29,15 @@ CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
 # ElasticSearch connection
 ES_CONN_INFO = {
     'host': config['ELASTICSEARCH']['host'],
-    'port': config['ELASTICSEARCH']['port'],
-    'user': config['ELASTICSEARCH']['user'],
-    'psw': config['ELASTICSEARCH']['pwd']
+    'port': config['ELASTICSEARCH']['port']
 }
-ES_CONN_STR = '{user}:{psw}@{host}:{port}'.format(**ES_CONN_INFO)
+ES_CONN_STR = '{host}:{port}'.format(**ES_CONN_INFO)
+if 'user' in config['ELASTICSEARCH']:
+    ES_CONN_STR = '{user}:{psw}@{srv}'.format(user=config['ELASTICSEARCH']['user'],
+                                              psw=config['ELASTICSEARCH']['pwd'],
+                                              srv=ES_CONN_STR)
+ES_FEATURES = ['WALLTIME_HOURS', 'ACTUALCORECOUNT_TOTAL', 'CORECOUNT_TOTAL',
+               'CPU_UTILIZATION_FIXED', 'CPUTIME_HOURS', 'SITE_EFFICIENCY']
 
 # Read sql scripts
 SQL_DIR = 'TaskStatus/database/sql/'
@@ -81,7 +88,7 @@ def request_db(request):
                             'get-slowest-tasks, get-barplot-information.')
 
     except Exception as e:
-        print("Error processing the request: " + str(e))
+        print(get_time() + "Error processing the request: " + str(e))
         result['error'] = str(e)
 
     return JsonResponse(result)
@@ -98,7 +105,7 @@ def get_taskid_information(jeditaskid):
         jeditaskid = int(jeditaskid)
     except ValueError:
         result = {'error': 'id should be an integer', 'jeditaskid': str(jeditaskid)}
-        print('Error! Function "calculate_data" got not an integer input.')
+        print(get_time() + 'Error! Function "get_taskid_information" got not an integer input.')
         return result
 
     # Make the request
@@ -128,8 +135,8 @@ def get_taskid_information(jeditaskid):
             # Count unique jobs, finished and failed
             jobs_count = jobs['PANDAID'].nunique()
             jobs_status_table = jobs['JOBSTATUS'].value_counts()
-            jobs_finished_count = jobs_status_table['finished']
-            jobs_failed_count = jobs_status_table['failed']
+            jobs_finished_count = 0 if 'finished' not in jobs_status_table.keys() else jobs_status_table['finished']
+            jobs_failed_count = 0 if 'failed' not in jobs_status_table.keys() else jobs_status_table['failed']
 
             # Copy a slice of data to modify time values
             timings_long = statuses[['START_TS', 'END_TS', 'COMPUTINGSITE']].copy()
@@ -151,7 +158,7 @@ def get_taskid_information(jeditaskid):
             timings_long = pd.merge(timings_long, efficiency, how='left', on=['START_TS', 'END_TS', 'COMPUTINGSITE'])
 
             # Merge jobs with the efficiency of the site it was processed on
-            statuses['EFFICIENCY'] = timings_long['EFFICIENCY']
+            statuses[ES_FEATURES] = timings_long[ES_FEATURES]
 
             # Separate scout jobs from non-scouts
             scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
@@ -202,7 +209,8 @@ def get_taskid_information(jeditaskid):
     # Other exceptions
     except Exception as e:
         result = {'error': 'There was an error. ' + str(e)}
-        print("[" + str(jeditaskid) + '] Error! Function "calculate_data" got an error: ' + str(e))
+        print(get_time() + " [" + str(jeditaskid) + '] Error! Function "get_taskid_information" got an error.')
+        traceback.print_exc()
 
     result['jeditaskid'] = jeditaskid
     return result
@@ -217,10 +225,10 @@ def get_db_connection(conn_str):
     """
     try:
         conn = cx_Oracle.connect(conn_str)
-        print('Connected to Oracle!')
+        print(get_time() + 'Connected to Oracle!')
         return conn
     except Exception as e:
-        print('Connection to Oracle failed. ' + str(e))
+        print(get_time() + 'Connection to Oracle failed. ' + str(e))
         return None
 
 
@@ -234,8 +242,9 @@ def jobs_with_statuses(connection, taskid):
     """
     try:
         cursor = connection.cursor()
-        query = SQL_SCRIPTS['jobs_with_statuses'].format(taskid)
-        return pd.DataFrame([row for row in cursor.execute(query)],
+        query = SQL_SCRIPTS['jobs_with_statuses'].format(taskid=taskid)
+
+        return pd.DataFrame(cursor.execute(query),
                             columns=['PANDAID', 'MODIFTIME_EXTENDED', 'DATE_TRUNCATED',
                                      'JOBSTATUS', 'COMPUTINGSITE', 'MODIFICATIONHOST',
                                      'ATTEMPTNR', 'FINAL_STATUS',
@@ -246,7 +255,7 @@ def jobs_with_statuses(connection, taskid):
                                      'PILOTERRORCODE', 'PILOTERRORDIAG',
                                      'IS_SCOUT'])
     except Exception as ex:
-        print("[" + str(taskid) + '] Exception in jobs_with_statuses: ' + str(ex))
+        print(get_time() + " [" + str(taskid) + '] Exception in jobs_with_statuses: ' + str(ex))
         return None
 
 
@@ -332,7 +341,9 @@ def get_sites_efficiency_from_es(timings):
     """
     # Establish connection
     es = Elasticsearch([ES_CONN_STR])
-    result = pd.DataFrame(index=[0], columns=['START_TS', 'END_TS', 'COMPUTINGSITE', 'EFFICIENCY'])
+
+    # Prepare an empty DataFrame
+    result_pd = pd.DataFrame(index=[0], columns=['START_TS', 'END_TS', 'COMPUTINGSITE'] + ES_FEATURES)
 
     # Calculate efficiency for every site
     for index, row in timings.iterrows():
@@ -340,11 +351,15 @@ def get_sites_efficiency_from_es(timings):
 
         # Specify the query
         query = {
-            "_source": False if site["START_TS"] != site["END_TS"] else ['site_efficiency'],
+            # If start and end times are equal - extract exact values via _source array
+            "_source": False if site["START_TS"] != site["END_TS"] else [x.lower() for x in ES_FEATURES],
+
+            # Filtering options: time and site name
             "query": {
                 "bool": {
                     "filter": [
                         {
+                            # If start and end date are different - search through a time span: >=START and <=END
                             "range": {
                                 "tstamp_day": {
                                     "gte": site["START_TS"].to_pydatetime().strftime("%Y-%m-%d"),
@@ -352,11 +367,13 @@ def get_sites_efficiency_from_es(timings):
                                 }
                             }
                         } if site["START_TS"] != site["END_TS"] else {
+                            # If start and end are equal, search a particular day
                             "match": {
                                 "tstamp_day": site["START_TS"].to_pydatetime().strftime("%Y-%m-%d")
                             }
                         },
                         {
+                            # Specify the computing site
                             "term": {
                                 "site_name.keyword": site["COMPUTINGSITE"]
                             }
@@ -364,35 +381,57 @@ def get_sites_efficiency_from_es(timings):
                     ]
                 }
             },
-            "aggs": {
-                "finished_jobs_total": {
-                    "sum": {
-                        "field": "finished_jobs"
-                    }
-                },
-                "failed_jobs_total": {
-                    "sum": {
-                        "field": "failed_jobs"
-                    }
-                }
+
+            # If dates are different - get an aggregated result from the ES.
+            # Some fields are summarized, from some of them a maximum value is taken.
+            "aggs": {} if site["START_TS"] == site["END_TS"] else {
+                "finished_jobs":   {"sum": {"field": "finished_jobs"}},
+                "failed_jobs":     {"sum": {"field": "failed_jobs"}},
+                "walltime_hours":  {"sum": {"field": "walltime_hours"}},
+                "corecount_total": {"max": {"field": "corecount_total"}},
+                "cputime_hours":   {"sum": {"field": "cputime_hours"}},
+                "actualcorecount_total":  {"max": {"field": "actualcorecount_total"}},
+                "cpu_utilization_fixed":  {"max": {"field": "cpu_utilization_fixed"}}
             }
         }
 
         # Make a search
         search = es.search(index='queues-metrics-v1-*', body=query)
-        fin = search['aggregations']['finished_jobs_total']['value']
-        fail = search['aggregations']['failed_jobs_total']['value']
-        eff = 0 if site["START_TS"] != site["END_TS"] else 0 if search['hits']['total']['value'] == 0 else\
-            search['hits']['hits'][0]['_source']['site_efficiency']
 
-        result = pd.concat([result, pd.DataFrame({
+        # Init resulting array for this site
+        result = {
             "START_TS": site["START_TS"],
             "END_TS": site["END_TS"],
-            "COMPUTINGSITE": site["COMPUTINGSITE"],
-            "EFFICIENCY": eff if site["START_TS"] != site["END_TS"] else 0 if fin+fail <= 0 else fin/(fin+fail)
-        }, index=[0], columns=['START_TS', 'END_TS', 'COMPUTINGSITE', 'EFFICIENCY'])])
+            "COMPUTINGSITE": site["COMPUTINGSITE"]
+        }
 
-    return result.iloc[1:].reset_index(drop=True)
+        # For every feature in the predefined ES_FEATURES array:
+        for feature in ES_FEATURES:
+            # If start and end dates are different:
+            if site["START_TS"] != site["END_TS"]:
+                # If feature is site_efficiency:
+                if feature == "SITE_EFFICIENCY":
+                    # Calculate finished and failed
+                    finished_jobs = search['aggregations']['finished_jobs']['value']
+                    failed_jobs = search['aggregations']['failed_jobs']['value']
+                    # Divide by formula or return 0
+                    result[feature] = 0 if finished_jobs + failed_jobs <= 0 else \
+                        finished_jobs / (finished_jobs + failed_jobs)
+                else:
+                    # For other features get value from aggregations
+                    result[feature] = search['aggregations'][feature.lower()]['value']
+            # Otherwise, check if ES actually found something
+            elif search['hits']['total']['value'] != 0:
+                # If so, get value from _source array
+                result[feature] = search['hits']['hits'][0]['_source'][feature.lower()]
+            else:
+                # If no data is found in the ES, fill the result with zeroes
+                result[feature] = 0
+
+        result_pd = pd.concat([result_pd, pd.DataFrame(result, index=[0], columns=['START_TS', 'END_TS',
+                                                                                   'COMPUTINGSITE'] + ES_FEATURES)])
+
+    return result_pd.iloc[1:].reset_index(drop=True)
 
 
 def statuses_duration(df):
@@ -422,10 +461,11 @@ def statuses_duration(df):
         v['ERROR_CODE'] = ','.join(codenames)
         frames.append(v)
 
-    return pd.concat(frames).sort_values(by=['PANDAID',
-                                             'MODIFTIME_EXTENDED',
-                                             'JOBSTATUS'
-                                             ])
+    return pd.DataFrame() if not frames else \
+        pd.concat(frames).sort_values(by=['PANDAID',
+                                          'MODIFTIME_EXTENDED',
+                                          'JOBSTATUS'
+                                          ])
 
 
 def pre_failed(df):
@@ -443,7 +483,7 @@ def pre_failed(df):
         v.rename(columns={"JOBSTATUS": "PRE-FAILED"}, inplace=True)
         # v['FINAL_STATUS'] = 'failed'
         frames.append(v.iloc[[-2]])
-    return pd.concat(frames)
+    return pd.DataFrame() if not frames else pd.concat(frames)
 
 
 def get_slowest_job_statuses(df, limit=400):
@@ -484,6 +524,15 @@ def get_seq_level(status, sequence_set):
     for i, x in enumerate(sequence_set):
         if status == x:
             return i
+
+
+def get_time():
+    """
+    Returns current time for logs.
+
+    :return: String with this format: "[01/Sep/2020 01:22:35]"
+    """
+    return strftime("[%d/%b/%Y %H:%M:%S]", gmtime())
 
 
 """
