@@ -247,7 +247,8 @@ body{
 }
 
 #plotly-scatterplot{
-	width: 600px;
+	width: 800px;
+	height: 800px;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -298,6 +299,23 @@ body{
 }
 
 /* Parallel Coordinates */
+#parcoords-containter{
+	width: 100%;
+	overflow: auto;
+	border: 0px;
+}
+
+#parcoords-containter .ui-widget-header{
+	border: 0px;
+	background: transparent;
+}
+
+#parcoords-containter .ui-tabs-tab{
+	border-bottom-left-radius: 3px;
+	border-bottom-right-radius: 3px;
+	border-bottom-width: 1px;
+}
+
 #parcoords-contents{
 	height: calc(100% - 59px);
 	width: 100%;

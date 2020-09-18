@@ -458,7 +458,7 @@ def statuses_duration(df):
             for code in np.unique(v[f"{column}ERRORCODE"].values):
                 if code != 0:
                     codenames.append(f"{column}:{code}")
-        v['ERROR_CODE'] = ','.join(codenames)
+        v['ERROR_CODE'] = ', '.join(codenames)
         frames.append(v)
 
     return pd.DataFrame() if not frames else \

@@ -10,6 +10,16 @@ Array.prototype.remove = function() {
     return this;
 };
 
+// Function to count objects in array
+if (!Array.prototype.hasOwnProperty('count'))
+    Object.defineProperties(Array.prototype, {
+        count: {
+            value: function (value) {
+                return this.filter(x => x == value).length;
+            }
+        }
+    });
+
 // Function to switch between 'Task Analysis' and 'Parallel Coordinates' tabs
 function ChangeTab(tab){
     $(tab).parent().children().removeClass('header-button-selected');
@@ -459,7 +469,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
     $('#parcoords-diagram').show();
 
     let columns = pdata[type]['columns'],
-        data = pdata[type]['data'];
+        data = pdata[type]['data'].map(x => x.map(y => (y === 'nan') ? 0 : y)); // nan removerTM
 
     // Prepare error codes array
     if (data.length !== 0){
@@ -484,6 +494,51 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             this.parcoords._options.skip.table_hide_columns.concat(error_fields);
     }
 
+    // Predefined colors for JOBSTATUS field
+    let status_colors = {
+        pending: "#bdd7e7",
+        defined: "#6baed6",
+        assigned: "#2171b5",
+        activated: "#fdbe85",
+        sent: "#fd8d3c",
+        starting: "#d94701",
+        running: "#df65b0",
+        holding: "#bcbddc",
+        merging: "#756bb1",
+        failed: "#f03b20",
+        finished: "#31a354"
+    },
+        colors = clustering,
+        color_scheme = undefined;
+
+    // If clustering by JOBSTATUS - prepare the necessary arrays
+    if (clustering === "JOBSTATUS" && pdata[type]['data'].length !== 0)
+    {
+        colors = data[0].map((col, i) => data.map(row => row[i]))[columns.findIndex(x => x === clustering)];
+        let clusters_unique = [...new Set(colors)];
+        color_scheme = {order: [], max_count: -1};
+
+        clusters_unique.forEach(x => {
+            let count = colors.map(String).count(x);
+
+            color_scheme[x] = {
+                count: count,
+                color: status_colors[x]
+            };
+
+            if (!color_scheme.hasOwnProperty('min_count')) {
+                color_scheme.min_count = 0;
+                color_scheme.max_count = count;
+            } else {
+                color_scheme.min_count = Math.min(count, color_scheme.min_count);
+                color_scheme.max_count = Math.max(count, color_scheme.max_count);
+            }
+        });
+
+        color_scheme.order = clusters_unique.sort((a, b) =>
+            color_scheme[b].count - color_scheme[a].count);
+    }
+
     // If no diagram was drawn before - init and draw a new one
     if (this.parcoords._diagram === undefined){
         // If nothing to draw - switch to the next type
@@ -495,12 +550,12 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         }
 
         this.parcoords._diagram = new ParallelCoordinates("parcoords-diagram",
-            columns, data, clustering, null, options);
+            columns, data, colors, color_scheme, options);
     }
     else
         // If a diagram is present - update it
         this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
-            clustering, null, options);
+             colors, color_scheme, options);
 
     // Draw a scatterplot
     let sid = columns.indexOf('JOBSTATUS'),
@@ -512,6 +567,10 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
                 name: x,
                 type: 'scatter',
                 mode: 'markers',
+                marker: {
+                    color: (Object.keys(status_colors).includes(x)) ? status_colors[x] : '',
+                    size: 13
+                },
                 y: arr.map(val => val[0].toString()),
                 x: arr.map(val => val[stime])
             }
@@ -535,6 +594,11 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         };
 
     Plotly.newPlot('plotly-scatterplot', straces, slayout);
+
+    $("#parcoords-containter")
+        .tabs()
+        .removeClass("ui-corner-all ui-widget ui-widget-content");
+    $("#parcoords-diagram-container").removeClass("ui-tabs-panel ui-corner-bottom ui-widget-content");
 
     // "Color by" selector
     this._selector = $('#color_selector').select2({
