@@ -1,3 +1,18 @@
+// Predefined list with colors of job statuses
+window._status_colors = {
+    pending: "#bdd7e7",
+    defined: "#6baed6",
+    assigned: "#2171b5",
+    activated: "#fdbe85",
+    sent: "#fd8d3c",
+    starting: "#a17979",
+    running: "#df65b0",
+    holding: "#bcbddc",
+    merging: "#756bb1",
+    failed: "#f03b20",
+    finished: "#31a354"
+};
+
 // Function to remove a specific item from an array
 Array.prototype.remove = function() {
     var what, a = arguments, L = a.length, ax;
@@ -495,20 +510,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
     }
 
     // Predefined colors for JOBSTATUS field
-    let status_colors = {
-        pending: "#bdd7e7",
-        defined: "#6baed6",
-        assigned: "#2171b5",
-        activated: "#fdbe85",
-        sent: "#fd8d3c",
-        starting: "#d94701",
-        running: "#df65b0",
-        holding: "#bcbddc",
-        merging: "#756bb1",
-        failed: "#f03b20",
-        finished: "#31a354"
-    },
-        colors = clustering,
+    let colors = clustering,
         color_scheme = undefined;
 
     // If clustering by JOBSTATUS - prepare the necessary arrays
@@ -523,7 +525,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
 
             color_scheme[x] = {
                 count: count,
-                color: status_colors[x]
+                color: window._status_colors[x]
             };
 
             if (!color_scheme.hasOwnProperty('min_count')) {
@@ -557,43 +559,82 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
              colors, color_scheme, options);
 
-    // Draw a scatterplot
-    let sid = columns.indexOf('JOBSTATUS'),
-        stime = columns.indexOf('MODIFTIME_EXTENDED'),
-        sunique = data.map(x => x[sid]).filter((x,i,arr) => arr.indexOf(x) === i),
-        straces = sunique.map(x => {
-            let arr = data.filter(y => y[sid] === x);
+    // Draw a scatterplot for selected types of jobs
+    let scatterplot_data = function (rows, cols) {
+            let status_id = cols.indexOf('JOBSTATUS'),
+                time = cols.indexOf('MODIFTIME_EXTENDED'),
+                unique = rows.map(x => x[status_id]).filter((x,i,arr) => arr.indexOf(x) === i),
+                // arr will be: [id, date, color, color_val]
+                data = [];
+
+            rows.map(val => data.push([val[0].toString()]));
+            rows.map((val, i) => data[i].push(val[time]));
+            rows.map((val, i) => data[i].push(val[status_id],
+                (Object.keys(window._status_colors).includes(val[status_id])) ?
+                    window._status_colors[val[status_id]] :
+                    ''));
+
+            return {data: data, unique: unique};
+        },
+        scatterplot_config = function(data, type){
+            let n = 0;
             return {
-                name: x,
-                type: 'scatter',
-                mode: 'markers',
-                marker: {
-                    color: (Object.keys(status_colors).includes(x)) ? status_colors[x] : '',
-                    size: 13
-                },
-                y: arr.map(val => val[0].toString()),
-                x: arr.map(val => val[stime])
-            }
-        }),
-        slayout = {
-            title: 'Job status profile',
-            xaxis:{
-                tickformat: '%H:%M:%S\n%e %b %Y',
-                title: {
-                    text: 'MODIFTIME_EXTENDED'
-                },
-                domain: [0.1, 1]
-            },
-            yaxis: {
-                tickformat: 'd',
-                type: 'category',
-                title: {
-                    text: 'JOBSTATUS'
+                traces: data.unique.map(x => {
+                    let filtered = data.data.filter(y => y[2] === x),
+                        filtered_rows = filtered[0].map((col, i) => filtered.map(row => row[i]));
+                    return {
+                        name: x,
+                        type: 'scatter',
+                        mode: 'markers',
+                        marker: {
+                            color: filtered_rows[3],
+                            size: 8 + n++
+                        },
+                        y: filtered_rows[0],
+                        x: filtered_rows[1]
+                    }
+                }).reverse(),
+                layout: {
+                    title: 'Job status profile - ' + type,
+                    xaxis:{
+                        tickformat: '%H:%M:%S\n%e %b %Y',
+                        title: {
+                            text: 'MODIFTIME_EXTENDED'
+                        },
+                        domain: [0.1, 1]
+                    },
+                    yaxis: {
+                        tickformat: 'd',
+                        type: 'category',
+                        title: {
+                            text: 'JOBSTATUS'
+                        }
+                    }
                 }
             }
-        };
+        },
+        config = scatterplot_config(scatterplot_data(data, columns), type);
 
-    Plotly.newPlot('plotly-scatterplot', straces, slayout);
+    Plotly.newPlot('status-profile-small', config.traces, config.layout);
+
+    // If scatterplot for all jobs is not present - draw it
+    if ($("#status-profile-all").html() === "") {
+        let data = {data: [], unique: []};
+
+        ['scouts', 'finished', 'failed'].forEach(x => {
+            let cols = pdata[x]['columns'],
+                rows = pdata[x]['data'],
+                _data = scatterplot_data(rows, cols);
+
+            data.data = data.data.concat(_data.data);
+            data.unique = data.unique.concat(_data.unique);
+        });
+
+        data.unique = data.unique.filter((x,i,arr) => arr.indexOf(x) === i);
+        let config = scatterplot_config(data, 'all');
+
+        Plotly.newPlot('status-profile-all', config.traces, config.layout);
+    }
 
     $("#parcoords-containter")
         .tabs()
