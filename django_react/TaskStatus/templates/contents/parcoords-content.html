@@ -26,23 +26,67 @@
         <p><b>End:</b> <span id="pc-end_value"></span></p>
 
         <br>
-        <button type="button" id="scouts_button" class="blue" onclick="SwitchDiagram('scouts')">Scouts</button>
-        <button type="button" id="finished_button" class="green" onclick="SwitchDiagram('finished')">Finished</button>
-        <button type="button" id="failed_button" class="pink" onclick="SwitchDiagram('failed')">Failed</button>
-        <button type="button" id="pre-failed_button" class="orange" onclick="SwitchDiagram('pre_failed')">Pre-Failed</button>
+        <button type="button" id="scouts_button" class="blue info-tooltip" onclick="SwitchDiagram('scouts')">Scouts</button>
+        <button type="button" id="finished_button" class="green info-tooltip" onclick="SwitchDiagram('finished')">Finished</button>
+        <button type="button" id="failed_button" class="pink info-tooltip" onclick="SwitchDiagram('failed')">Failed</button>
+        <button type="button" id="pre-failed_button" class="orange info-tooltip" onclick="SwitchDiagram('pre_failed')">Pre-Failed</button>
 
         <div style="height: 50px"></div>
 
-        <div id="color_div">
-            <span>Color by </span>
+        <div id="parcoords-options">
+            <div id="parcoords-options-header">
+                <span>Diagram options:</span>
+                <div class="info">
+                    <i class="icon-info-sign" data-popup-text="Parallel Coordinates diagram is configured below"></i>
+                </div>
+            </div>
+
+            <div>
+                <label class="switch">
+                    <input id="pc-linear-interpolation" type="checkbox" onclick="SwitchDiagram(window._current_type)">
+                    <span class="slider round"></span>
+                </label>
+                <span>Linear interpolation</span>
+                <div class="info">
+                    <i class="icon-info-sign" data-popup-text="Switch between linear and monotone interpolation
+                        methods on the diagram"></i>
+                </div>
+            </div>
+
+            <div>
+                <label class="switch">
+                    <input id="pc-limit-quantity" type="checkbox" checked onclick="SwitchDiagram(window._current_type)">
+                    <span class="slider round"></span>
+                </label>
+                <span>Limit quantity</span>
+                <div class="info">
+                    <i class="icon-info-sign" data-popup-text="Limit quantity of curves on the diagram to 400 jobs
+                        with the highest duration"></i>
+                </div>
+            </div>
+
+            <div id="color_div">
+                <span>Color by: </span>
+            </div>
         </div>
+
+        <div id="scatter-small-options">
+            <div><span>Jump to:</span></div>
+            <nav id="scatter-small-jumpdiv" class="navigation"></nav>
+        </div>
+
+        <div id="scatter-all-options">
+            <div><span>Jump to:</span></div>
+            <div id="scatter-all-jumpdiv" class="navigation"></div>
+        </div>
+
     </div>
 
     <div id="parcoords-containter">
         <ul>
             <li><a href="#parcoords-diagram-container">Parallel Coordinates</a></li>
-            <li><a href="#status-profile-small">Job Status Profile</a></li>
-            <li><a href="#status-profile-all">All Jobs Status Profile</a></li>
+            <li><a href="#status-profile-small">Job Status - Scatter Plot</a></li>
+            <li><a href="#status-profile-all">All Jobs Statues - Scatter Plot</a></li>
         </ul>
 
         <div id="parcoords-diagram-container" class="parcoords-box">
@@ -51,8 +95,7 @@
             <div id="parcoords-diagram"></div>
         </div>
 
-        <div id="status-profile-small" class="plotly-scatterplot"></div>
-
-        <div id="status-profile-all" class="plotly-scatterplot"></div>
+        <div id="status-profile-small" class="plotly-scatterplot-container"></div>
+        <div id="status-profile-all" class="plotly-scatterplot-container"></div>
     </div>
 </div>

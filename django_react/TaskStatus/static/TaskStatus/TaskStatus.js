@@ -13,6 +13,9 @@ window._status_colors = {
     finished: "#31a354"
 };
 
+// List of statuses to be enabled on scatterplots
+window._profiling_statuses_enabled = ['finished', 'merging', 'failed', 'running', 'activated'];
+
 // Function to remove a specific item from an array
 Array.prototype.remove = function() {
     var what, a = arguments, L = a.length, ax;
@@ -35,7 +38,9 @@ if (!Array.prototype.hasOwnProperty('count'))
         }
     });
 
-// Function to switch between 'Task Analysis' and 'Parallel Coordinates' tabs
+$(document).ready(()=>TooltipPrepare());
+
+// Function to switch between 'Overall Statistics' and 'Task Execution Analysis' tabs
 function ChangeTab(tab){
     $(tab).parent().children().removeClass('header-button-selected');
     $(tab).addClass('header-button-selected');
@@ -52,7 +57,7 @@ function ChangeTab(tab){
     }
 }
 
-// Send a request to server when the user has chosen the dates on the Task Analysis tab
+// Send a request to server when the user has chosen the dates on the Overall Statistics tab
 function DatesChosen(){
     $('#duration-loading-label').show();
     $('#duration-starting-label').hide();
@@ -108,20 +113,21 @@ function GotDurationData(data){
     // a button to build ParCoords diagram
     let link_btn = (id) => {return '<a href="/task/'+ id +'/" target="_blank" rel="noopener noreferrer" ' +
             'class="duration-img"> ' + numberWithSpaces(parseFloat(Number(id).toFixed(2))) +
-            '  <img class="top-link-img" data-type="link" src="/static/images/external-link.png" title="Open in new tab"> ' +
+            '  <img class="top-link-img info-tooltip" data-type="link" src="/static/images/external-link.png" ' +
+            'data-popup-text="Open in new tab"> ' +
             //'class="duration-img duration-load" style="width:10px;height:10px;">' +
             '</a>'; },
-        load_btn = '<img data-type="load" src="/static/images/view.png" ' +
-            'title="Prepare the diagram" class="duration-img duration-load">',
+        load_btn = '<img data-type="load" data-popup-text="Prepare diagrams" src="/static/images/view.png" ' +
+            'class="duration-img duration-load info-tooltip">',
         loading_icon = '<img src="/static/ParallelCoordinates/loading.gif" data-type="loading" ' +
-            'title="Data is loading" class="duration-img hidden img-unclickable">',
+            'data-popup-text="Data is loading" class="duration-img hidden img-unclickable info-tooltip">',
         ready_icon = '<img src="/static/images/checkmark.png" data-type="ready" ' +
-            'title="Data is ready" class="duration-img hidden">',
+            'data-popup-text="Data is ready" class="duration-img hidden info-tooltip">',
         error_icon = '<img src="/static/images/delete.png" data-type="ready" ' +
-            'title="There was an error. Please try to load the data again." ' +
-            'class="duration-img hidden img-unclickable">',
+            'data-popup-text="There was an error. Please try to load the data again." ' +
+            'class="duration-img hidden img-unclickable info-tooltip">',
         forward_btn = '<img src="/static/images/line-chart.png" data-type="run" ' +
-            'title="Draw Parallel Coordinates diagram" class="duration-img hidden">';
+            'data-popup-text="Draw diagrams" class="duration-img hidden info-tooltip">';
 
     // Prepare header and cells for the table with the slowest tasks
     this.duration = {
@@ -172,6 +178,9 @@ function GotDurationData(data){
             "searching": false
         });
 
+    // Listener to prepare tooltips on page change
+    this._duration_table.on('draw.dt', () => TooltipPrepare());
+
     // Add button handlers
     $('#slowest-tasks-list tbody').on( 'click', 'img', function () {
         let jeditaskid = window._duration_table.row($(this).parents('tr')).data()[0].toString();
@@ -180,9 +189,11 @@ function GotDurationData(data){
         else if (['loading', 'link'].includes(this.dataset.type)) return;
         else PreLoadIDinfo(jeditaskid);
     });
+
+    TooltipPrepare();
 }
 
-// Function to set the start and finish date on the Task Analysis page.
+// Function to set the start and finish date on the Overall Statistics page.
 // types are: 'last-month' and 'last-day'
 function SetDates(type){
     let date = new Date();
@@ -206,31 +217,34 @@ function DrawBoxPlot(data){
     $('#duration-boxplot').show();
 
     let plot_data = {
-            'done': [],
-            'finished': [],
-            'aborted': [],
-            'exhausted': [],
-            'failed': [],
-            'obsolete': [],
-            'broken': [],
-            'ready': []
+            'done': {y:[], text:[]},
+            'finished': {y:[], text:[]},
+            'aborted': {y:[], text:[]},
+            'exhausted': {y:[], text:[]},
+            'failed': {y:[], text:[]},
+            'obsolete': {y:[], text:[]},
+            'broken': {y:[], text:[]},
+            'ready': {y:[], text:[]}
         },
         traces = [],
         layout = {
             yaxis: { title: 'Execution time, days' },
+            width: 800,
             title: 'Box Plot: Distribution of tasks execution time by statuses'
         },
-        config = {responsive: true};
+        config = {};//{responsive: true};
 
-    data.data.forEach((x) => plot_data[x[1]].push(x[0]));
+    data.data.forEach((x) => { plot_data[x[2]].text.push(x[0]); plot_data[x[2]].y.push(x[1]); });
 
     ['done', 'finished', 'aborted', 'exhausted', 'failed', 'obsolete', 'broken', 'ready']
         .forEach((x) =>
             traces.push({
-                y: plot_data[x],
+                y: plot_data[x].y,
+                text: plot_data[x].text,
                 type: 'box',
                 name: x,
-                boxpoints: 'Outliers'
+                boxpoints: 'Outliers',
+                hovertemplate: 'TaskID: %{text:,}<br>Duration: %{y:.1f} days',
             }));
     Plotly.newPlot('duration-boxplot', traces, layout, config);
 }
@@ -250,7 +264,7 @@ function RunParCoords(id){
         $('#header-parallelcoordinates').click();
 
         if (!this.hasOwnProperty('parcoords') || this.parcoords._current_id !== id)
-            BuildParCoords(this.duration._storage[id]);
+            BuildDiagrams(this.duration._storage[id]);
     }
 }
 
@@ -310,7 +324,7 @@ function IDErrored(id, error = 'There was an error. Please try to load the data 
     $($(node).children()[0]).show();
     $($(node).children()[1]).hide();
     $($(node).children()[2]).hide();
-    $($(node).children()[3]).show().attr('title', error);
+    $($(node).children()[3]).show().data('popupText', error);
     $($(node).children()[4]).hide();
 }
 
@@ -332,24 +346,27 @@ function GetIDinfo(id){
         data: { 'type': 'get-id-info', 'jeditaskid': value },
         dataType: 'json',
         timeout: 0,
-        success: (data) => BuildParCoords(data),
+        success: (data) => BuildDiagrams(data),
         error: (error) => RequestError('There was an error: ' + error.statusText, value)
       });
 
     if (this.hasOwnProperty('duration')) IDLoading(value);
 }
 
-// A function to initialize ParCoords diagram
-function BuildParCoords(data) {
+// A function to initialize diagrams
+function BuildDiagrams(data) {
+    // Check for errors
     if (data.hasOwnProperty('error')){
         RequestError(data.error, (data.hasOwnProperty('jeditaskid')) ? data.jeditaskid : null);
         return;
     }
 
+    // Show header and div with diagram
     $('#header').show();
     $('#parcoords-first-page').css("opacity", "0").hide();
     $('#parcoords-after-load').css("opacity", "1").show();
 
+    // Calculate task duration
     let dateformat = Intl.DateTimeFormat('en-GB', {
             year: 'numeric',
             month: 'numeric',
@@ -359,6 +376,7 @@ function BuildParCoords(data) {
         }),
         time_dif = Math.ceil((Date.parse(data.max_time) - Date.parse(data.min_time)) / (1000 * 60 * 60 * 24));
 
+    // Write task information
     $('#pc-taskid_value').text(numberWithSpaces(data.jeditaskid));
     $('#pc-jobs_value').text(data.jobs_count);
     $('#pc-finished-failed_value').text(data.finished_count + ' / ' + data.failed_count);
@@ -366,11 +384,15 @@ function BuildParCoords(data) {
     $('#pc-start_value').text(dateformat.format(Date.parse(data.min_time)));
     $('#pc-end_value').text(dateformat.format(Date.parse(data.max_time)));
 
+    // Change the loaded status on the duration page
     if (this.hasOwnProperty('duration')){
         this.duration._storage[data.jeditaskid] = data;
         IDLoaded(data.jeditaskid);
     }
 
+    let linear_interpolation = $('#pc-linear-interpolation').is(':checked');
+
+    // Prepare the configuration object
     this.parcoords = {
         _current_id: data.jeditaskid,
         _data: {
@@ -392,19 +414,19 @@ function BuildParCoords(data) {
                     selector: true,
                     table: true,
                     table_colvis: true
-                }
+                },
+                interpolate: (linear_interpolation) ? 'linear' : 'monotone'
             },
             skip: {                     // Feature skip options
                 dims: {
                     mode: "show",       // Skip mode: show, hide, none
                     strict_naming: true,
-                    values: ['PANDAID', 'DATE_TRUNCATED', 'JOBSTATUS', 'DURATION', 'COMPUTINGSITE', 'WALLTIME_HOURS',
-                             'ACTUALCORECOUNT_TOTAL', 'CORECOUNT_TOTAL', 'CPU_UTILIZATION_FIXED', 'CPUTIME_HOURS',
-                             'SITE_EFFICIENCY']
+                    values: ['PANDAID', 'DATE_TRUNCATED', 'JOBSTATUS', 'DURATION',
+                             'COMPUTINGSITE', 'SITE_WALLTIME_H', 'SITE_ACTUALCORECOUNT_TOTAL', 'SITE_CORECOUNT_TOTAL',
+                             'SITE_CPU_UTILIZATION', 'SITE_CPUTIME_H', 'SITE_EFFICIENCY']
                                         // Features to be shown on diagram by default
                 },
-                table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS',
-                    'STATUS_LEVEL']
+                table_hide_columns: ['DATE_TRUNCATED', 'IS_SCOUT', 'SEQUENCE', 'START_TS', 'END_TS', 'STATUS_LEVEL']
             },
             worker: {
                 enabled: true,
@@ -413,17 +435,20 @@ function BuildParCoords(data) {
         }
     };
 
+    // Prepare the coloring selector
     if (this._selector_div === undefined)
         this._selector_div = d3.select('#color_div')
             .append('select')
                 .attr({'class': 'select',
                         'id': 'color_selector'});
 
-    $('#scouts_button').prop('title', 'Objects count: ' + this.parcoords._data.scouts.data.length);
-    $('#finished_button').prop('title', 'Objects count: ' + this.parcoords._data.finished.data.length);
-    $('#failed_button').prop('title', 'Objects count: ' + this.parcoords._data.failed.data.length);
-    $('#pre-failed_button').prop('title', 'Objects count: ' + this.parcoords._data.pre_failed.data.length);
+    // Set object count on button popups
+    $('#scouts_button').data('popup-text', 'Objects count: ' + this.parcoords._data.scouts.data.length);
+    $('#finished_button').data('popup-text', 'Objects count: ' + this.parcoords._data.finished.data.length);
+    $('#failed_button').data('popup-text', 'Objects count: ' + this.parcoords._data.failed.data.length);
+    $('#pre-failed_button').data('popup-text', 'Objects count: ' + this.parcoords._data.pre_failed.data.length);
 
+    // Disable buttons if there is nothing to display
     if (this.parcoords._data.scouts.data.length === 0) $('#scouts_button').attr("disabled", true);
         else $('#scouts_button').removeAttr("disabled");
     if (this.parcoords._data.finished.data.length === 0) $('#finished_button').attr("disabled", true);
@@ -433,17 +458,20 @@ function BuildParCoords(data) {
     if (this.parcoords._data.pre_failed.data.length === 0) $('#pre-failed_button').attr("disabled", true);
         else $('#pre-failed_button').removeAttr("disabled");
 
-    $.fn.dataTable.ext.search = [];
-
+    // Draw the diagram
     SwitchDiagram('scouts');
 }
 
 // Function to switch between diagram types: 'scouts', 'finished', etc.
 function SwitchDiagram(type, user_approved = false, selector_changed = false){
+    // Prepare variable shortcuts
     let pdata = this.parcoords._data,
         options = this.parcoords._options,
         clustering = (type === 'pre_failed') ? 'PRE-FAILED' : 'JOBSTATUS',
         label = '';
+
+    // Clear the search array
+    $.fn.dataTable.ext.search = [];
 
     this._current_type = type;
     if (selector_changed) clustering = selector_changed;
@@ -457,31 +485,14 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         if (!options.skip.dims.values.includes('PRE-FAILED')) options.skip.dims.values.push('PRE-FAILED');
     }
     $('#parcoords-diagram-label').text(label);
-    $('#plotly-scatterplot').empty();
 
     // Make sure ERROR_CODE will be present on all types except Finished
     if (type === 'finished')
-        {if (options.skip.dims.values.includes('ERROR_CODE')) options.skip.dims.values.remove('ERROR_CODE');}
-    else if (!options.skip.dims.values.includes('ERROR_CODE')) options.skip.dims.values.push('ERROR_CODE');
-
-    // Switch to offscreen when more than 500 lines present
-    this.parcoords._options.worker.offscreen = (pdata[type].data.length > 500);
-    // Show a warning if there are more than 5000 lines to draw
-    if (pdata[type].data.length > 5000)
-        // If this operation is approved, go ahead and draw
-        if (!user_approved) {
-            $('#parcoords-too-much-data')
-                .show()
-                .html('The request contains a lot of objects (' + pdata[type].data.length + ') and the diagram ' +
-                    'may take a significant time to build. ' +
-                    'Are you sure? <button onclick="SwitchDiagram(\'' + type + '\', ' +
-                        'true, ' + selector_changed + ')">Yes</button>');
-            $('#parcoords-diagram').hide();
-            return;
+        {
+            if (options.skip.dims.values.includes('ERROR_CODE'))
+                options.skip.dims.values.remove('ERROR_CODE');
         }
-
-    $('#parcoords-too-much-data').hide();
-    $('#parcoords-diagram').show();
+    else if (!options.skip.dims.values.includes('ERROR_CODE')) options.skip.dims.values.push('ERROR_CODE');
 
     let columns = pdata[type]['columns'],
         data = pdata[type]['data'].map(x => x.map(y => (y === 'nan') ? 0 : y)); // nan removerTM
@@ -541,6 +552,230 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             color_scheme[b].count - color_scheme[a].count);
     }
 
+    // *** Draw the scatterplots ***
+
+    // Draw a scatterplot for selected types of jobs
+    let scatterplot_data = function (rows, cols) {
+            let status_id = cols.indexOf('JOBSTATUS'),
+                time = cols.indexOf('MODIFTIME_EXTENDED'),
+                site_id = cols.indexOf('COMPUTINGSITE'),
+                unique_statuses = rows.map(x => x[status_id]).filter((x,i,arr) => arr.indexOf(x) === i),
+                unique_sites = rows.map(x => x[site_id]).filter((x,i,arr) => arr.indexOf(x) === i),
+                // arr will be: [id, date, color, color_val]
+                data = [];
+
+            rows.map(val => data.push([val[0].toString()]));
+            rows.map((val, i) => data[i].push(val[time]));
+            rows.map((val, i) => data[i].push(val[status_id],
+                (Object.keys(window._status_colors).includes(val[status_id])) ?
+                    window._status_colors[val[status_id]] :
+                    ''));
+            rows.map((val, i) => data[i].push(val[site_id]));
+
+            return {data: data, unique: {statuses: unique_statuses, sites: unique_sites}};
+        },
+        scatterplot_config = function(data, type, site = ''){
+            let //n = 0,
+                max_quantity = 20;
+
+            return {
+                traces: data.unique.statuses.map(x => {
+                    let filtered = data.data.filter(y => ((y[2] === x) && (site === '' || y[4] === site))),
+                        filtered_rows = [[]];
+
+                    if (filtered.length !== 0)
+                        filtered_rows = filtered[0].map((col, i) => filtered.map(row => row[i]));
+
+                    max_quantity = Math.max(filtered_rows[0].length, max_quantity);
+
+                    return {
+                        name: x,
+                        type: 'scatter',
+                        mode: 'markers',
+                        visible: window._profiling_statuses_enabled.includes(x) ? '' : 'legendonly',
+                        marker: {
+                            color: filtered_rows[3],
+                            size: 10 //+ n++
+                        },
+                        hovertemplate: 'Panda ID: %{y:,}<br>Time: %{x}',
+                        y: filtered_rows[0],
+                        x: filtered_rows[1]
+                    }
+                }),
+                layout: {
+                    title: 'Job status profile - ' + type + ((site === '' )? '' : ', site ' + site),
+                    xaxis:{
+                        tickformat: '%H:%M:%S\n%e %b %Y',
+                        title: {
+                            text: 'MODIFTIME_EXTENDED'
+                        },
+                        domain: [0.1, 1]
+                    },
+                    yaxis: {
+                        tickformat: 'd',
+                        type: 'category',
+                        title: {
+                            text: 'Panda ID'
+                        }
+                    },
+                    hovermode:'closest',
+                    height: Math.max((max_quantity < 50) ? max_quantity * 20 : 1000, 500)
+                }
+            }
+        },
+        sc_data = scatterplot_data(data, columns),
+        sc_config = scatterplot_config(sc_data, type);
+
+    // Clear the small scatterplot container and its options and fill it with new ones
+    $('#status-profile-small').empty();
+    $('#scatter-small-jumpdiv').empty();
+
+    // First plot is for all data
+    $('#status-profile-small').append('<div id="status-profile-small-0" class="plotly-scatterplot"></div><hr>');
+    Plotly.newPlot('status-profile-small-0', sc_config.traces, sc_config.layout);
+
+    $('#scatter-small-jumpdiv').append('<a href="#status-profile-small-0" class="navigation__link active">All scout jobs</a>');
+
+    // Other ones are for each site
+    sc_data.unique.sites.forEach((x, i)=>{
+        let config = scatterplot_config(sc_data, type, x);
+
+        $('#status-profile-small').append('<div id="status-profile-small-' + (i + 1) + '" class="plotly-scatterplot"></div><hr>');
+        Plotly.newPlot('status-profile-small-' + (i + 1), config.traces, config.layout);
+
+        $('#scatter-small-jumpdiv').append('<a href="#status-profile-small-'+ (i + 1) +'" class="navigation__link">' + x + '</a>');
+    });
+    $('#status-profile-small hr:last-child').remove();
+
+    // Next - draw scatterplots for all jobs
+    $('#status-profile-all').empty();
+    $('#scatter-all-jumpdiv').empty();
+    // {} to separate 'data' and 'config' from the rest of the function
+    {
+        let data = {data: [], unique: {statuses:[], sites:[]}};
+
+        ['scouts', 'finished', 'failed'].forEach(x => {
+            let cols = pdata[x]['columns'],
+                rows = pdata[x]['data'],
+                _data = scatterplot_data(rows, cols);
+
+            data.data = data.data.concat(_data.data);
+            data.unique.statuses = data.unique.statuses.concat(_data.unique.statuses);
+            data.unique.sites = data.unique.sites.concat(_data.unique.sites);
+        });
+
+        data.unique.statuses = data.unique.statuses.filter((x,i,arr) => arr.indexOf(x) === i);
+        data.unique.sites = data.unique.sites.filter((x,i,arr) => arr.indexOf(x) === i);
+        let config = scatterplot_config(data, 'all');
+
+        $('#status-profile-all').append('<div id="status-profile-all-0" class="plotly-scatterplot"></div><hr>');
+        Plotly.newPlot('status-profile-all-0', config.traces, config.layout);
+
+        $('#scatter-all-jumpdiv').append('<a href="#status-profile-all-0" class="navigation__link active">All jobs</a>');
+
+        data.unique.sites.forEach((x, i)=>{
+            let config = scatterplot_config(data, type, x);
+
+            $('#status-profile-all').append('<div id="status-profile-all-' + (i + 1) + '" class="plotly-scatterplot"></div><hr>');
+            Plotly.newPlot('status-profile-all-' + (i + 1), config.traces, config.layout);
+
+            $('#scatter-all-jumpdiv').append('<a href="#status-profile-all-'+ (i + 1) +'" class="navigation__link">' + x + '</a>');
+        });
+    }
+    $('#status-profile-all hr:last-child').remove();
+
+    // Add tabs and apply the styling
+    $("#parcoords-containter")
+        .tabs({
+            // Hide unnecessary options divs
+            create: () => {
+                $('#scatter-small-options').hide();
+                $('#scatter-all-options').hide();
+            },
+
+            // Show them when appropriate tab is selected
+            activate: (event, ui) => {
+                switch (ui.newTab.index()) {
+                    case 0:
+                        $('#parcoords-options').show();
+                        $('#scatter-small-options').hide();
+                        $('#scatter-all-options').hide();
+                        break;
+                    case 1:
+                        $('#parcoords-options').hide();
+                        $('#scatter-small-options').show();
+                        $('#scatter-all-options').hide();
+                        break;
+                    case 2:
+                        $('#parcoords-options').hide();
+                        $('#scatter-small-options').hide();
+                        $('#scatter-all-options').show();
+                        break;
+                }
+            }
+        })
+        .removeClass("ui-corner-all ui-widget ui-widget-content");
+    $("#parcoords-diagram-container").removeClass("ui-tabs-panel ui-corner-bottom ui-widget-content");
+
+    // Animations of jumping to the scatter plots
+    $('a[href^="#status-profile"]').bind('click', function(e) {
+        e.preventDefault(); // prevent hard jump, the default behavior
+        var target = $(this).attr("href");  // Set the target as variable
+        if(!target.match(/\d+$/)) return;   // If it does not end with a number - return
+
+        // perform animated scrolling by getting top-position of target-element and set it as scroll target
+        $('#parcoords-containter').stop().animate({ scrollTop: $(target)[0].offsetTop }, 600);
+    });
+
+    // Script to track which scatterplot the user is looking at (and mark it in the navigation)
+    $('#parcoords-containter').scroll(function() {
+        // Assign active class to nav links while scolling
+        $('.plotly-scatterplot:visible').each(function(i) {
+            if ($(this).position().top < 150) {
+                $('.navigation a:visible.active').removeClass('active');
+                $('.navigation a:visible').eq(i).addClass('active');
+            }
+        });
+    }).scroll();
+
+    // *** ScatterPlots finished ***
+
+    // *** Back to ParCoords, draw it ***
+
+    // Check for linear interpolation switch
+    let linear_interpolation = $('#pc-linear-interpolation').is(':checked'),
+        limit_quantity = $('#pc-limit-quantity').is(':checked'),
+        duration_id = columns.indexOf('DURATION'),
+        color_id = columns.findIndex(x => x === clustering);
+    options.draw.interpolate = (linear_interpolation) ? 'linear' : 'monotone';
+
+    // Switch to offscreen when more than 500 lines present
+    this.parcoords._options.worker.offscreen = (pdata[type].data.length > 500 );
+    // Show a warning if there are more than 5000 lines to draw
+    if (pdata[type].data.length > 5000 && !limit_quantity)
+        // If this operation is approved, go ahead and draw
+        if (!user_approved) {
+            $('#parcoords-too-much-data')
+                .show()
+                .html('The request contains a lot of objects (' + pdata[type].data.length + ') and the diagram ' +
+                    'may take a significant time to build. ' +
+                    'Are you sure? <button onclick="SwitchDiagram(\'' + type + '\', ' +
+                        'true, ' + selector_changed + ')">Yes</button>');
+            $('#parcoords-diagram').hide();
+            return;
+        }
+
+    // If there were too much data and user approved - draw the diagram
+    $('#parcoords-too-much-data').hide();
+    $('#parcoords-diagram').show();
+
+    // If quantity is limited by the user - sort arrays and extract 400 longest jobs
+    if (limit_quantity && data.length > 400){
+        data = data.sort((a, b) => b[duration_id] - a[duration_id]).slice(0,400);
+        colors = data.map(x => x[color_id]);
+        options.worker.offscreen = false;
+    }
+
     // If no diagram was drawn before - init and draw a new one
     if (this.parcoords._diagram === undefined){
         // If nothing to draw - switch to the next type
@@ -559,88 +794,6 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         this.parcoords._diagram.updateData("parcoords-diagram", columns, data,
              colors, color_scheme, options);
 
-    // Draw a scatterplot for selected types of jobs
-    let scatterplot_data = function (rows, cols) {
-            let status_id = cols.indexOf('JOBSTATUS'),
-                time = cols.indexOf('MODIFTIME_EXTENDED'),
-                unique = rows.map(x => x[status_id]).filter((x,i,arr) => arr.indexOf(x) === i),
-                // arr will be: [id, date, color, color_val]
-                data = [];
-
-            rows.map(val => data.push([val[0].toString()]));
-            rows.map((val, i) => data[i].push(val[time]));
-            rows.map((val, i) => data[i].push(val[status_id],
-                (Object.keys(window._status_colors).includes(val[status_id])) ?
-                    window._status_colors[val[status_id]] :
-                    ''));
-
-            return {data: data, unique: unique};
-        },
-        scatterplot_config = function(data, type){
-            let n = 0;
-            return {
-                traces: data.unique.map(x => {
-                    let filtered = data.data.filter(y => y[2] === x),
-                        filtered_rows = filtered[0].map((col, i) => filtered.map(row => row[i]));
-                    return {
-                        name: x,
-                        type: 'scatter',
-                        mode: 'markers',
-                        marker: {
-                            color: filtered_rows[3],
-                            size: 8 + n++
-                        },
-                        y: filtered_rows[0],
-                        x: filtered_rows[1]
-                    }
-                }).reverse(),
-                layout: {
-                    title: 'Job status profile - ' + type,
-                    xaxis:{
-                        tickformat: '%H:%M:%S\n%e %b %Y',
-                        title: {
-                            text: 'MODIFTIME_EXTENDED'
-                        },
-                        domain: [0.1, 1]
-                    },
-                    yaxis: {
-                        tickformat: 'd',
-                        type: 'category',
-                        title: {
-                            text: 'JOBSTATUS'
-                        }
-                    }
-                }
-            }
-        },
-        config = scatterplot_config(scatterplot_data(data, columns), type);
-
-    Plotly.newPlot('status-profile-small', config.traces, config.layout);
-
-    // If scatterplot for all jobs is not present - draw it
-    if ($("#status-profile-all").html() === "") {
-        let data = {data: [], unique: []};
-
-        ['scouts', 'finished', 'failed'].forEach(x => {
-            let cols = pdata[x]['columns'],
-                rows = pdata[x]['data'],
-                _data = scatterplot_data(rows, cols);
-
-            data.data = data.data.concat(_data.data);
-            data.unique = data.unique.concat(_data.unique);
-        });
-
-        data.unique = data.unique.filter((x,i,arr) => arr.indexOf(x) === i);
-        let config = scatterplot_config(data, 'all');
-
-        Plotly.newPlot('status-profile-all', config.traces, config.layout);
-    }
-
-    $("#parcoords-containter")
-        .tabs()
-        .removeClass("ui-corner-all ui-widget ui-widget-content");
-    $("#parcoords-diagram-container").removeClass("ui-tabs-panel ui-corner-bottom ui-widget-content");
-
     // "Color by" selector
     this._selector = $('#color_selector').select2({
             closeOnSelect: true,
@@ -658,6 +811,31 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
 
     this._selector_ready = false;
     this._selector.val(clustering).trigger('change');
+}
+
+function ToggleBoldLines(){
+    $('.pc-svg-container .foreground path').css('stroke-width', '5px');
+}
+
+// Prepare tooltip popups
+function TooltipPrepare() {
+    // Prepare the information tooltip
+    var tooltipSpan = document.getElementById('tooltip-info');
+    $('.icon-info-sign,.info-tooltip')
+        .mousemove((e) => {
+            let x = e.clientX,
+                y = e.clientY;
+
+            tooltipSpan.style.opacity = '1';
+            tooltipSpan.style.top = y + 'px';
+            tooltipSpan.style.left = (x + 20) + 'px';
+            tooltipSpan.textContent = $(e.target).data('popup-text');
+        })
+        .mouseleave(() => {
+            tooltipSpan.style.opacity = '0';
+            tooltipSpan.style.top = 9999 + 'px';
+            tooltipSpan.style.left = 9999 + 'px';
+        });
 }
 
 // If an ajax request fails, this function is called

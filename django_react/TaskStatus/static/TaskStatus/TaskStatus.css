@@ -1,9 +1,9 @@
 @font-face {
-  font-family: "Oswald script=all rev=1";
-  src: url("https://fonts.gstatic.com/s/oswald/v29/TK3_WkUHHAIjg75cFRf3bXL8LICs1xZosUZiZQ.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	font-family: "Oswald script=all rev=1";
+	src: url("https://fonts.gstatic.com/s/oswald/v29/TK3_WkUHHAIjg75cFRf3bXL8LICs1xZosUZiZQ.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 700;
+	unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* Page background */
@@ -209,7 +209,7 @@ body{
 }
 
 #slowest-tasks-list_wrapper .ui-button{
-    margin-bottom: 3px;
+		margin-bottom: 3px;
 	padding: 3px;
 }
 
@@ -243,14 +243,24 @@ body{
 }
 
 #color_div{
-	text-align: center;
+	padding-top: 5px;
+}
+
+.plotly-scatterplot-container{
+	width: min-content;
+	padding: 0 !important;
+	margin-right: auto;
+	margin-left: auto;
 }
 
 .plotly-scatterplot{
 	width: 800px;
-	height: 800px;
-	margin-left: auto;
-	margin-right: auto;
+}
+
+.plotly-scatterplot hr{
+	border: none;
+	color: lightgray;
+	background-color: lightgray;
 }
 
 /* Description box */
@@ -308,6 +318,7 @@ body{
 #parcoords-containter .ui-widget-header{
 	border: 0px;
 	background: transparent;
+	padding-bottom: 3px;
 }
 
 #parcoords-containter .ui-tabs-tab{
@@ -323,6 +334,15 @@ body{
 	position: absolute;
 	transition: all .5s ease;
 	opacity: 0.001;
+}
+
+#parcoords-options div{
+	padding-bottom: 5px;
+}
+
+.parcoords-left-menu > div > div:first-child > span:first-child{
+	font-size: 22px;
+	margin: 5px 0 5px 0;
 }
 
 #parcoords-contents h1{
@@ -409,6 +429,147 @@ body{
 #data-loading .pc-loading{
 	margin-top: 0px;
 	display: none;
+}
+
+/* on-off switch */
+.switch {
+	position: relative;
+	display: inline-block;
+	width: 40px;
+	height: 20px;
+	vertical-align: bottom;
+}
+
+.switch input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.slider {
+	position: absolute;
+	cursor: pointer;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #ccc;
+	-webkit-transition: .4s;
+	transition: .4s;
+}
+
+.slider:before {
+	position: absolute;
+	content: "";
+	height: 16px;
+	width: 16px;
+	left: 2px;
+	bottom: 2px;
+	background-color: white;
+	-webkit-transition: .4s;
+	transition: .4s;
+}
+
+input:checked + .slider {
+	background-color: #2196F3;
+}
+
+input:focus + .slider {
+	box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+	-webkit-transform: translateX(19px);
+	-ms-transform: translateX(19px);
+	transform: translateX(19px);
+}
+
+/* info popup */
+.extra-info {
+	display: block;
+	position:fixed;
+	overflow:hidden;
+	line-height: 30px;
+	font-family: 'Lato', sans-serif;
+	font-size: 14px;
+	top: 0;
+	left: 50px;
+	z-index: 1;
+	padding: 0 5px 0 5px;
+	border-radius: 10px;
+	border: 2px solid gray;
+	background-color: white;
+
+	opacity: 0;
+	transition: opacity .2s ease;
+}
+
+.info {
+	font-size: 15px;
+	padding-left: 5px;
+	width: 20px;
+	border-radius: 15px;
+	display: inline;
+}
+
+.info:hover {
+	background-color: white;
+	padding: 0 0 0 5px;
+	width: 315px;
+	text-align: left !important;
+}
+
+/* Rounded sliders */
+.slider.round {
+	border-radius: 17px;
+}
+
+.slider.round:before {
+	border-radius: 50%;
+}
+
+/* Navigation menu */
+.navigation {
+
+}
+
+.navigation__link {
+	display: block;
+	color: black;
+	text-decoration: none;
+	padding: 5px;
+	font-weight: 400;
+}
+.navigation__link:hover {
+	background-color: #aaa;
+	position:relative;
+	margin-right:10px;
+}
+
+.navigation__link:hover::before {
+	left: 100%;
+	border-left: 14px solid #aaa;
+	content: " ";
+	position: absolute;
+	border-top: 15px solid transparent;
+	border-bottom: 14px solid transparent;
+	top:0px;
+}
+
+.navigation__link.active {
+	background-color: rgba(0,0,0,0.1);
+	position:relative;
+	margin-right:10px;
+}
+
+.navigation__link.active:before {
+	left: 100%;
+	border-left: 14px solid rgba(0,0,0,0.1);
+	content: " ";
+	position: absolute;
+	border-top: 15px solid transparent;
+	border-bottom: 14px solid transparent;
+	top:0px;
 }
 
 /* not used :( */

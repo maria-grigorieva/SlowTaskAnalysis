@@ -38,6 +38,8 @@ if 'user' in config['ELASTICSEARCH']:
                                               srv=ES_CONN_STR)
 ES_FEATURES = ['WALLTIME_HOURS', 'ACTUALCORECOUNT_TOTAL', 'CORECOUNT_TOTAL',
                'CPU_UTILIZATION_FIXED', 'CPUTIME_HOURS', 'SITE_EFFICIENCY']
+ES_FEATURES_RENAMED = ['SITE_WALLTIME_H', 'SITE_ACTUALCORECOUNT_TOTAL', 'SITE_CORECOUNT_TOTAL',
+                       'SITE_CPU_UTILIZATION', 'SITE_CPUTIME_H', 'SITE_EFFICIENCY']
 
 # Read sql scripts
 SQL_DIR = 'TaskStatus/database/sql/'
@@ -75,7 +77,7 @@ def request_db(request):
             result = get_slowest_user_tasks(connection, start, end) \
                 .astype(str).to_dict('split')
 
-        # Request the slowest tasks list
+        # Request slowest task statuses for boxplot
         elif request_type == 'get-boxplot-information':
             connection = cx_Oracle.connect(CONN_STR)
             start = request.GET.get('start-time', None)
@@ -158,7 +160,7 @@ def get_taskid_information(jeditaskid):
             timings_long = pd.merge(timings_long, efficiency, how='left', on=['START_TS', 'END_TS', 'COMPUTINGSITE'])
 
             # Merge jobs with the efficiency of the site it was processed on
-            statuses[ES_FEATURES] = timings_long[ES_FEATURES]
+            statuses[ES_FEATURES_RENAMED] = timings_long[ES_FEATURES_RENAMED]
 
             # Separate scout jobs from non-scouts
             scouts = statuses[statuses['IS_SCOUT'] == 'SCOUT']
@@ -416,7 +418,7 @@ def get_sites_efficiency_from_es(timings):
                     failed_jobs = search['aggregations']['failed_jobs']['value']
                     # Divide by formula or return 0
                     result[feature] = 0 if finished_jobs + failed_jobs <= 0 else \
-                        finished_jobs / (finished_jobs + failed_jobs)
+                        truncate(finished_jobs / (finished_jobs + failed_jobs), 4)
                 else:
                     # For other features get value from aggregations
                     result[feature] = search['aggregations'][feature.lower()]['value']
@@ -428,9 +430,14 @@ def get_sites_efficiency_from_es(timings):
                 # If no data is found in the ES, fill the result with zeroes
                 result[feature] = 0
 
-        result_pd = pd.concat([result_pd, pd.DataFrame(result, index=[0], columns=['START_TS', 'END_TS',
-                                                                                   'COMPUTINGSITE'] + ES_FEATURES)])
+        result_pd = pd.concat([result_pd, pd.DataFrame(result, index=[0],
+                                                       columns=['START_TS', 'END_TS',
+                                                                'COMPUTINGSITE'] + ES_FEATURES)])
 
+    # Rename columns to add 'site_' prefix
+    result_pd.columns = ['START_TS', 'END_TS', 'COMPUTINGSITE'] + ES_FEATURES_RENAMED
+
+    # Reset index
     return result_pd.iloc[1:].reset_index(drop=True)
 
 
@@ -517,7 +524,7 @@ def get_boxplot_information(connection, start_time, end_time):
     cursor = connection.cursor()
     query = SQL_SCRIPTS['boxplot_information'].format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
-                        columns=['duration', 'status'])
+                        columns=['jeditaskid', 'duration', 'status'])
 
 
 def get_seq_level(status, sequence_set):
@@ -533,6 +540,17 @@ def get_time():
     :return: String with this format: "[01/Sep/2020 01:22:35]"
     """
     return strftime("[%d/%b/%Y %H:%M:%S]", gmtime())
+
+
+def truncate(n, decimals=0):
+    """
+    Limit quantity of decimal numbers of 'n' to 'decimals'
+    :param n: The number
+    :param decimals: Quantity of decimal numbers
+    :return: Truncated number
+    """
+    multiplier = 10 ** decimals
+    return int(n * multiplier) / multiplier
 
 
 """
