@@ -66,7 +66,7 @@ def get_site_info(queue_name):
         if queue_info:
             country = queue_info['rc_country']
             site_country = next((o for o in countries if o['name']['common'].lower() == country.lower()), 'UNKNOWN')
-            if site_country:
+            if site_country != 'UNKNOWN':
                 lat, lon = site_country['latlng']
             else:
                 lat, lon = [0, 0]

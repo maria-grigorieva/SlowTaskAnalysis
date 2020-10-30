@@ -100,7 +100,7 @@ SELECT trunc(statechangetime, 'DDD')                                       AS ts
       NVL(ff.finished_jobs,0) finished_jobs,
   NVL(ff.failed_jobs,0) failed_jobs,
       (CASE WHEN (NVL(ff.finished_jobs,0)+NVL(ff.failed_jobs,0)) != 0 THEN
-     round(NVL(ff.finished_jobs,0)/(NVL(ff.finished_jobs,0)+NVL(ff.failed_jobs,0)), 3)
+     round(NVL(ff.finished_jobs,0)/(NVL(ff.finished_jobs,1)+NVL(ff.failed_jobs,0)), 3)
     ELSE 0 END) as jobs_efficiency
     FROM first f
 INNER JOIN finish_fail ff ON (f.tstamp_hour = ff.tstamp_hour AND f.queue = ff.queue)

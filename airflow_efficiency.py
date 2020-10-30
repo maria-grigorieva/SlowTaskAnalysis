@@ -7,6 +7,7 @@ import re
 import subprocess
 import datetime as dt
 from elasticsearch import Elasticsearch, helpers
+from datetime import timedelta
 import csv
 
 from airflow.models import DAG
@@ -16,6 +17,8 @@ from airflow.operators.python_operator import PythonOperator
 args = {
     'owner': 'InVEx',
     'start_date': dt.datetime(2020, 6, 1, 00, 00, 00),
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),
 }
 
 # DAG description
@@ -92,14 +95,14 @@ def extract_data(**kwargs):
     cmd = f'/srv/SlowTaskAnalysis/venv/bin/python3 export_efficiency.py' \
         f' --from {from_date} --to {to_date} --output {output_path}'
 
-    process = subprocess.Popen(cmd, cwd='/srv/SlowTaskAnalysis/app/django_react', shell=True, stdout=subprocess.PIPE)
-    stdout, _ = process.communicate()
+    process = subprocess.Popen(cmd, cwd='/srv/SlowTaskAnalysis/app/django_react', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
 
+    print(stdout.decode("utf-8"))
     if process.returncode != 0:
         updated_log = re.sub('--connection ".+"', "", cmd)
+        print(stderr.decode("utf-8"))
         raise subprocess.CalledProcessError(1, updated_log)
-    else:
-        print(stdout)
 # [END extract_data]
 
 
