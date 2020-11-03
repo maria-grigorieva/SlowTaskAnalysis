@@ -85,12 +85,19 @@ def request_db(request):
             result = get_boxplot_information(connection, start, end) \
                 .astype(str).to_dict('split')
 
+        # Request tasks and their lag in statuses
+        elif request_type == 'get_tasks_lag':
+            connection = cx_Oracle.connect(CONN_STR)
+            ids = request.GET.get('ids', None)          # String with ids, separated by comma
+            result = get_tasks_lag(connection, ids) \
+                .astype(str).to_dict('split')
+
         else:
             raise Exception('Wrong request type. Possible values: get-id-info, '
                             'get-slowest-tasks, get-barplot-information.')
 
     except Exception as e:
-        print(get_time() + "Error processing the request: " + str(e))
+        print(get_time() + " Error processing the request: " + str(e))
         result['error'] = str(e)
 
     return JsonResponse(result)
@@ -107,7 +114,7 @@ def get_taskid_information(jeditaskid):
         jeditaskid = int(jeditaskid)
     except ValueError:
         result = {'error': 'id should be an integer', 'jeditaskid': str(jeditaskid)}
-        print(get_time() + 'Error! Function "get_taskid_information" got not an integer input.')
+        print(get_time() + ' Error! Function "get_taskid_information" got not an integer input.')
         return result
 
     # Make the request
@@ -514,7 +521,7 @@ def get_slowest_user_tasks(connection, start_time, end_time):
 
 def get_boxplot_information(connection, start_time, end_time):
     """
-    Get the list of all jobs and their statuses and durations in a time span.
+    Get the list of all tasks and their statuses and durations in a time span.
 
     :param connection: cx_Oracle object
     :param start_time: start time
@@ -525,6 +532,20 @@ def get_boxplot_information(connection, start_time, end_time):
     query = SQL_SCRIPTS['boxplot_information'].format(start_time, end_time)
     return pd.DataFrame([row for row in cursor.execute(query)],
                         columns=['jeditaskid', 'duration', 'status'])
+
+
+def get_tasks_lag(connection, ids):
+    """
+    Get the list of tasks and history of their statuses
+
+    :param connection: cx_Oracle object
+    :param ids: task ids
+    :return: DataFrame with duration and status columns
+    """
+    cursor = connection.cursor()
+    query = SQL_SCRIPTS['jeditasks_status_lag'].format(ids)
+    return pd.DataFrame([row for row in cursor.execute(query)],
+                        columns=['jeditaskid', 'modificationtime', 'status', 'lag', 'delay'])
 
 
 def get_seq_level(status, sequence_set):

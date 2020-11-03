@@ -1,17 +1,67 @@
-// Predefined list with colors of job statuses
-window._status_colors = {
-    pending: "#bdd7e7",
-    defined: "#6baed6",
-    assigned: "#2171b5",
-    activated: "#fdbe85",
-    sent: "#fd8d3c",
-    starting: "#a17979",
-    running: "#df65b0",
-    holding: "#bcbddc",
-    merging: "#756bb1",
-    failed: "#f03b20",
-    finished: "#31a354"
+// Predefined list with colors of task statuses
+window._task_status_colors = {
+    registered: '#f1eef6',
+    defined: '#d7b5d8',
+    topreprocess: '#df65b0',
+    preprocessing: '#dd1c77',
+    tobroken: '#980043',
+
+    assigning: '#ffffcc',
+    ready: '#c7e9b4',
+    pending: '#7fcdbb',
+    scouting: '#41b6c4',
+    scouted: '#1d91c0',
+    running: '#225ea8',
+    prepared: '#0c2c84',
+
+    toabort: '#feedde',
+    aborting: '#fdbe85',
+    finishing: '#fd8d3c',
+    passed: '#d94701',
+
+    toretry: '#ffffcc',
+    toincexec: '#c2e699',
+    rerefine: '#78c679',
+
+    done: '#31a354',
+    finished: '#006837',
+
+    throttled: '#fed8c9',
+    exhausted: '#fcae91',
+    aborted: '#fb6a4a',
+    broken: '#de2d26',
+    failed: '#a50f15',
+
+    paused: '#969696'
 };
+window._task_status_order = ['registered', 'defined', 'topreprocess', 'preprocessing', 'tobroken', 'assigning', 'ready',
+    'pending', 'scouting', 'scouted', 'running', 'prepared', 'toabort', 'aborting', 'finishing', 'passed', 'toretry',
+    'toincexec', 'rerefine', 'throttled', 'exhausted', 'aborted', 'broken', 'failed', 'done', 'finished', 'paused'];
+
+// Predefined list with colors of job statuses
+window._job_status_colors = {
+    defined: '#eff3ff',
+    pending: '#bdd7e7',
+    waiting: '#6baed6',
+    assigned: '#2171b5',
+
+    activated: '#fee6ce',
+    sent: '#fdae6b',
+    starting: '#e6550d',
+
+    running: '#efedf5',
+    holding: '#bcbddc',
+    transferring: '#756bb1',
+
+    finished: '#31a354',
+
+    cancelled: '#fee0d2',
+    unassigned: '#fc9272',
+    failed: '#de2d26'
+};
+window._job_status_order = ['defined', 'pending', 'waiting', 'assigned', 'activated', 'sent', 'starting', 'running',
+    'holding', 'transferring', 'finished', 'cancelled', 'unassigned', 'failed'];
+
 
 // List of statuses to be enabled on scatterplots
 window._profiling_statuses_enabled = ['finished', 'merging', 'failed', 'running', 'activated'];
@@ -37,6 +87,19 @@ if (!Array.prototype.hasOwnProperty('count'))
             }
         }
     });
+
+// Function to convert time string to string in HHMMSS format
+String.prototype.toHHMMSS = function () {
+    var sec_num = parseInt(this, 10); // don't forget the second param
+    var hours   = Math.floor(sec_num / 3600);
+    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+    var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+    if (hours   < 10) {hours   = "0"+hours;}
+    if (minutes < 10) {minutes = "0"+minutes;}
+    if (seconds < 10) {seconds = "0"+seconds;}
+    return hours+':'+minutes+':'+seconds;
+}
 
 $(document).ready(()=>TooltipPrepare());
 
@@ -168,15 +231,15 @@ function GotDurationData(data){
         this._duration_table = $('#slowest-tasks-list')
             .addClass("hover")
             .DataTable({
-            data: this.duration._cells,
-            columns: this.duration._header,
-            mark: true,
-            bAutoWidth: false,
-            dom: 'ABlfrtip',
-            buttons: ['copy', 'csv'],
-            "order": [[ 1, "desc" ]],
-            "searching": false
-        });
+                data: this.duration._cells,
+                columns: this.duration._header,
+                mark: true,
+                bAutoWidth: false,
+                dom: 'ABlfrtip',
+                buttons: ['copy', 'csv'],
+                "order": [[ 1, "desc" ]],
+                "searching": false
+            });
 
     // Listener to prepare tooltips on page change
     this._duration_table.on('draw.dt', () => TooltipPrepare());
@@ -191,6 +254,100 @@ function GotDurationData(data){
     });
 
     TooltipPrepare();
+
+
+    if (this._ajax_status_lag !== undefined) this._ajax_status_lag.abort();
+    this._ajax_status_lag = $.ajax({
+        url: '/ajax/request_db',
+        data: { 'type': 'get_tasks_lag', 'ids': data.data.map(x => x[0]).join(',')},
+        dataType: 'json',
+        timeout: 0,
+        success: (data) => GotTasksLagData(data),
+        error: (error) => RequestError('There was an error: ' + error.statusText)
+    });
+}
+
+function GotTasksLagData(data){
+    // cols: jeditaskid, modificationtime, status, lag, delay
+    var taskid = 0,
+        modtimeid = 1,
+        statusid = 2,
+        lagid = 3,
+        delayid = 4;
+
+    let scatterplot_data = function (rows, cols) {
+            let unique_statuses = rows.map(x => x[statusid]).filter((x,i,arr) => arr.indexOf(x) === i),
+                unique_ids = rows.map(x => x[taskid]).filter((x,i,arr) => arr.indexOf(x) === i),
+                // arr will be: [id, date, color, color_val]
+                data = [];
+
+            rows.map(val => data.push([val[taskid].toString()]));
+            rows.map((val, i) => data[i].push(val[modtimeid]));
+            rows.map((val, i) => data[i].push(val[statusid],
+                (Object.keys(window._task_status_colors).includes(val[statusid])) ?
+                    window._task_status_colors[val[statusid]] :
+                    ''));
+            rows.map((val, i) => data[i].push((val[delayid] === 'nan') ? '0' : val[delayid].toHHMMSS()));
+
+            return {data: data, unique: {statuses: unique_statuses, ids: unique_ids}};
+        },
+        scatterplot_config = function(data){
+            let //n = 0,
+                max_quantity = 20;
+
+            return {
+                traces: window._task_status_order.map(x => {
+                    let filtered = data.data.filter(y => ((y[statusid] === x))),
+                        filtered_rows = [[]];
+
+                    if (filtered.length !== 0)
+                        filtered_rows = filtered[0].map((col, i) => filtered.map(row => row[i]));
+
+                    max_quantity = Math.max(filtered_rows[0].length, max_quantity);
+
+                    return {
+                        name: x,
+                        type: 'scatter',
+                        mode: 'markers',
+                        //visible: window._profiling_statuses_enabled.includes(x) ? '' : 'legendonly',
+                        marker: {
+                            color: filtered_rows[3],
+                            size: 10 //+ n++
+                        },
+                        hovertemplate: 'Jedi Task ID: %{y:,}<br>Time: %{x}<br>Delay: %{text}',
+                        y: filtered_rows[taskid],
+                        x: filtered_rows[modtimeid],
+                        text: filtered_rows[4]
+                    }
+                }),
+                layout: {
+                    title: 'Top-50 Slowest Tasks',
+                    xaxis:{
+                        tickformat: '%H:%M:%S\n%e %b %Y',
+                        title: {
+                            text: 'Modification Time'
+                        },
+                        domain: [0.1, 1]
+                    },
+                    yaxis: {
+                        tickformat: 'd',
+                        type: 'category',
+                        title: {
+                            text: 'Jedi Task ID'
+                        }
+                    },
+                    hovermode:'closest',
+                    width: 800,
+                    height: Math.max((max_quantity < 50) ? max_quantity * 20 : 1000, 500)
+                }
+            }
+        },
+        sc_config = scatterplot_config(scatterplot_data(data.data, data.columns));
+
+    Plotly.newPlot('duration-taskstatus_lag', sc_config.traces, sc_config.layout);
+
+
+    //duration-taskstatus_lag
 }
 
 // Function to set the start and finish date on the Overall Statistics page.
@@ -220,23 +377,20 @@ function DrawBoxPlot(data){
             'done': {y:[], text:[]},
             'finished': {y:[], text:[]},
             'aborted': {y:[], text:[]},
-            'exhausted': {y:[], text:[]},
             'failed': {y:[], text:[]},
-            'obsolete': {y:[], text:[]},
-            'broken': {y:[], text:[]},
-            'ready': {y:[], text:[]}
+            'broken': {y:[], text:[]}
         },
         traces = [],
         layout = {
             yaxis: { title: 'Execution time, days' },
-            width: 800,
+            width: 600,
             title: 'Box Plot: Distribution of tasks execution time by statuses'
         },
         config = {};//{responsive: true};
 
     data.data.forEach((x) => { plot_data[x[2]].text.push(x[0]); plot_data[x[2]].y.push(x[1]); });
 
-    ['done', 'finished', 'aborted', 'exhausted', 'failed', 'obsolete', 'broken', 'ready']
+    ['done', 'finished', 'aborted', 'failed', 'broken']
         .forEach((x) =>
             traces.push({
                 y: plot_data[x].y,
@@ -244,8 +398,10 @@ function DrawBoxPlot(data){
                 type: 'box',
                 name: x,
                 boxpoints: 'Outliers',
-                hovertemplate: 'TaskID: %{text:,}<br>Duration: %{y:.1f} days',
+                marker: { color: (window._task_status_colors.hasOwnProperty(x)) ? window._task_status_colors[x] : '' },
+                hovertemplate: 'Jedi Task ID: %{text:,}<br>Duration: %{y:.2f} days',
             }));
+
     Plotly.newPlot('duration-boxplot', traces, layout, config);
 }
 
@@ -536,7 +692,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
 
             color_scheme[x] = {
                 count: count,
-                color: window._status_colors[x]
+                color: window._job_status_colors[x]
             };
 
             if (!color_scheme.hasOwnProperty('min_count')) {
@@ -567,8 +723,8 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
             rows.map(val => data.push([val[0].toString()]));
             rows.map((val, i) => data[i].push(val[time]));
             rows.map((val, i) => data[i].push(val[status_id],
-                (Object.keys(window._status_colors).includes(val[status_id])) ?
-                    window._status_colors[val[status_id]] :
+                (Object.keys(window._job_status_colors).includes(val[status_id])) ?
+                    window._job_status_colors[val[status_id]] :
                     ''));
             rows.map((val, i) => data[i].push(val[site_id]));
 
@@ -579,7 +735,7 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
                 max_quantity = 20;
 
             return {
-                traces: data.unique.statuses.map(x => {
+                traces:window._job_status_order.map(x => {
                     let filtered = data.data.filter(y => ((y[2] === x) && (site === '' || y[4] === site))),
                         filtered_rows = [[]];
 
@@ -635,17 +791,18 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
     Plotly.newPlot('status-profile-small-0', sc_config.traces, sc_config.layout);
 
     $('#scatter-small-jumpdiv').append('<a href="#status-profile-small-0" class="navigation__link active">All scout jobs</a>');
+    $('#status-profile-small').append('<div id="status-profile-small-grid" class="plotly-scatterplot-grid"></div>');
 
     // Other ones are for each site
     sc_data.unique.sites.forEach((x, i)=>{
         let config = scatterplot_config(sc_data, type, x);
 
-        $('#status-profile-small').append('<div id="status-profile-small-' + (i + 1) + '" class="plotly-scatterplot"></div><hr>');
+        $('#status-profile-small-grid').append('<div id="status-profile-small-' + (i + 1) + '" class="plotly-scatterplot"></div>');
         Plotly.newPlot('status-profile-small-' + (i + 1), config.traces, config.layout);
 
         $('#scatter-small-jumpdiv').append('<a href="#status-profile-small-'+ (i + 1) +'" class="navigation__link">' + x + '</a>');
     });
-    $('#status-profile-small hr:last-child').remove();
+    $('#status-profile-small-grid hr:last-child').remove();
 
     // Next - draw scatterplots for all jobs
     $('#status-profile-all').empty();
@@ -672,17 +829,18 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
         Plotly.newPlot('status-profile-all-0', config.traces, config.layout);
 
         $('#scatter-all-jumpdiv').append('<a href="#status-profile-all-0" class="navigation__link active">All jobs</a>');
+        $('#status-profile-all').append('<div id="status-profile-all-grid" class="plotly-scatterplot-grid"></div>');
 
         data.unique.sites.forEach((x, i)=>{
             let config = scatterplot_config(data, type, x);
 
-            $('#status-profile-all').append('<div id="status-profile-all-' + (i + 1) + '" class="plotly-scatterplot"></div><hr>');
+            $('#status-profile-all-grid').append('<div id="status-profile-all-' + (i + 1) + '" class="plotly-scatterplot"></div>');
             Plotly.newPlot('status-profile-all-' + (i + 1), config.traces, config.layout);
 
             $('#scatter-all-jumpdiv').append('<a href="#status-profile-all-'+ (i + 1) +'" class="navigation__link">' + x + '</a>');
         });
     }
-    $('#status-profile-all hr:last-child').remove();
+    $('#status-profile-all-grid hr:last-child').remove();
 
     // Add tabs and apply the styling
     $("#parcoords-containter")

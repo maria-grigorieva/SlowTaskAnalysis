@@ -148,6 +148,8 @@ body{
 
 .duration-block-right .duration-box:nth-child(1) {
 	flex: 1 1 75%;
+	display: flex;
+	flex-wrap: wrap;
 }
 
 .duration-block-right .duration-box:nth-child(2) {
@@ -168,16 +170,27 @@ body{
 	font-size: 24px;
 }
 
-#duration-boxplot .svg-container{
+#duration-boxplot .svg-container, #duration-taskstatus_lag{
 	margin-left: auto;
 	margin-right: auto;
 }
 
 #duration-boxplot-loading{
 	width: 300px;
+	height: 20px;
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
+	margin-bottom: 50px;
+}
+
+#duration-boxplot-and-table{
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: column;
+	width: min-content;
+	margin-right: auto;
+	margin-left: auto;
 }
 
 #duration-loading-label{
@@ -247,14 +260,18 @@ body{
 }
 
 .plotly-scatterplot-container{
-	width: min-content;
 	padding: 0 !important;
-	margin-right: auto;
-	margin-left: auto;
+	width: 100%;
+}
+
+.plotly-scatterplot-grid{
+	display: flex;
+	flex-wrap: wrap;
 }
 
 .plotly-scatterplot{
 	width: 800px;
+	margin: auto;
 }
 
 .plotly-scatterplot hr{
