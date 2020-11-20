@@ -552,6 +552,7 @@ input:checked + .slider:before {
 
 .navigation__link {
 	display: block;
+	cursor: pointer;
 	color: black;
 	text-decoration: none;
 	padding: 5px;
