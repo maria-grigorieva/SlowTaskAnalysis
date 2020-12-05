@@ -315,7 +315,11 @@ function GotTasksLagData(data){
                             color: filtered_rows[3],
                             size: 10 //+ n++
                         },
-                        hovertemplate: 'Jedi Task ID: %{y:,}<br>Time: %{x}<br>Status: ' + x + '<br>Delay: %{text}',
+                        hovertemplate:
+                            'Jedi Task ID: %{y:,}<br>' +
+                            'Time: %{x}<br>' +
+                            'Status: ' + x +
+                            ((x==='defined')?'':'<br>Delay: %{text}') ,
                         hoverlabel: { namelength: 0 },
                         y: filtered_rows[taskid],
                         x: filtered_rows[modtimeid],
@@ -536,15 +540,17 @@ function BuildDiagrams(data) {
             hour: 'numeric',
             minute: 'numeric'
         }),
-        time_dif = Math.ceil((Date.parse(data.max_time) - Date.parse(data.min_time)) / (1000 * 60 * 60 * 24));
+        max_time = data.max_time.replace(/-/g, "/"),
+        min_time = data.min_time.replace(/-/g, "/"),
+        time_dif = Math.ceil((Date.parse(max_time) - Date.parse(min_time)) / (1000 * 60 * 60 * 24));
 
     // Write task information
     $('#pc-taskid_value').text(numberWithSpaces(data.jeditaskid));
     $('#pc-jobs_value').text(data.jobs_count);
     $('#pc-finished-failed_value').text(data.finished_count + ' / ' + data.failed_count);
     $('#pc-duration_value').text(time_dif + ' days');
-    $('#pc-start_value').text(dateformat.format(Date.parse(data.min_time)));
-    $('#pc-end_value').text(dateformat.format(Date.parse(data.max_time)));
+    $('#pc-start_value').text(dateformat.format(Date.parse(min_time)));
+    $('#pc-end_value').text(dateformat.format(Date.parse(max_time)));
 
     // Change the loaded status on the duration page
     if (this.hasOwnProperty('duration')){
@@ -627,7 +633,8 @@ function BuildDiagrams(data) {
                     window._job_status_colors[val[status_id]] :
                     ''));
             rows.map((val, i) => data[i].push(val[site_id]));                           // Site
-            rows.map((val, i) => data[i].push([val[site_id], val[error_id]]));          // [Site, Error]
+            rows.map((val, i) => data[i].push([val[site_id],
+                (val[error_id] === '') ? '-' : val[error_id]]));                        // [Site, Error]
 
             return {data: data, unique: {statuses: unique_statuses, sites: unique_sites}};
         },

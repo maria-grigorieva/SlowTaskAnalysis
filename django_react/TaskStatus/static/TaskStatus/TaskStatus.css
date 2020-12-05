@@ -186,7 +186,6 @@ body{
 
 #duration-boxplot-and-table{
 	display: flex;
-	flex-wrap: wrap;
 	flex-direction: column;
 	width: min-content;
 	margin-right: auto;
