@@ -186,7 +186,7 @@ def get_taskid_information(jeditaskid):
                       # # 'sequences': _tmpl_sequences,
                       'finished': finished.astype(str).to_dict('split'),
                       'failed': failed.astype(str).to_dict('split'),
-                      # 'closed': closed.astype(str).to_dict('split'),
+                      'all_jobs': statuses.astype(str).to_dict('split'),
                       'scouts': scouts.astype(str).to_dict('split'),
                       'jobs_count': str(jobs_count),
                       'finished_count': str(jobs_finished_count),

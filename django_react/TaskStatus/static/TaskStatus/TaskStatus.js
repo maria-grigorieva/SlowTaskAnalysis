@@ -58,10 +58,12 @@ window._job_status_colors = {
 
     cancelled: '#dabdb0',
     unassigned: '#fc9272',
-    failed: '#de2d26'
+    failed: '#de2d26',
+
+    paused: '#969696'
 };
 window._job_status_order = ['defined', 'pending', 'waiting', 'assigned', 'activated', 'sent', 'starting', 'running',
-    'holding', 'transferring', 'merging', 'finished', 'cancelled', 'unassigned', 'failed'];
+    'holding', 'transferring', 'merging', 'finished', 'cancelled', 'unassigned', 'failed', 'paused'];
 
 
 // List of statuses to be enabled on scatterplots
@@ -541,16 +543,23 @@ function BuildDiagrams(data) {
             minute: 'numeric'
         }),
         max_time = data.max_time.replace(/-/g, "/"),
+        d_max_time = Date.parse(max_time),
+        s_max_time = (!isNaN(d_max_time)) ? dateformat.format(d_max_time) : 'None',
         min_time = data.min_time.replace(/-/g, "/"),
-        time_dif = Math.ceil((Date.parse(max_time) - Date.parse(min_time)) / (1000 * 60 * 60 * 24));
+        d_min_time = Date.parse(min_time),
+        s_min_time = (!isNaN(d_min_time)) ? dateformat.format(d_min_time) : 'None';
+
+        time_dif = (s_max_time !== 'None' && s_min_time !== 'None') ?
+            Math.ceil((Date.parse(max_time) - Date.parse(min_time)) / (1000 * 60 * 60 * 24)) :
+            'None';
 
     // Write task information
     $('#pc-taskid_value').text(numberWithSpaces(data.jeditaskid));
     $('#pc-jobs_value').text(data.jobs_count);
     $('#pc-finished-failed_value').text(data.finished_count + ' / ' + data.failed_count);
-    $('#pc-duration_value').text(time_dif + ' days');
-    $('#pc-start_value').text(dateformat.format(Date.parse(min_time)));
-    $('#pc-end_value').text(dateformat.format(Date.parse(max_time)));
+    $('#pc-duration_value').text((time_dif === 'None') ? '-' : time_dif + ' days');
+    $('#pc-start_value').text(s_min_time);
+    $('#pc-end_value').text(s_max_time);
 
     // Change the loaded status on the duration page
     if (this.hasOwnProperty('duration')){
@@ -568,7 +577,7 @@ function BuildDiagrams(data) {
             scouts: data.scouts,
             failed: data.failed,
             finished: data.finished,
-            // closed: data.closed,
+            all_jobs: data.all_jobs,
             pre_failed: data.pre_failed,
             //sequences: data.sequences
         },
@@ -685,6 +694,7 @@ function BuildDiagrams(data) {
                     yaxis: {
                         tickformat: 'd',
                         type: 'category',
+                        categoryorder: 'category ascending',
                         title: {
                             text: 'Panda ID'
                         }
@@ -700,23 +710,14 @@ function BuildDiagrams(data) {
         'scouts': {},
         'finished': {},
         'failed': {},
-        'all': {}
+        'all_jobs': {}
     };
 
-
-    // Data for all jobs in one object
-    let cs_data_all = {data: [], unique: {statuses:[], sites:[]}};
-
-    // Gather all data in cs_data_all and configure individual arrays
-    ['scouts', 'finished', 'failed'].forEach(x => {
+    // Configure individual arrays for all scatterplot types
+    ['scouts', 'finished', 'failed', 'all_jobs'].forEach(x => {
         let cols = this.parcoords._data[x]['columns'],
             rows = this.parcoords._data[x]['data'],
             _data = scatterplot_data(rows, cols);
-
-        // Data for all statuses
-        cs_data_all.data = cs_data_all.data.concat(_data.data);
-        cs_data_all.unique.statuses = cs_data_all.unique.statuses.concat(_data.unique.statuses);
-        cs_data_all.unique.sites = cs_data_all.unique.sites.concat(_data.unique.sites);
 
         // Data for this specific status
         window.scatterplots[x].all = scatterplot_config(_data, x);
@@ -726,19 +727,11 @@ function BuildDiagrams(data) {
         });
     });
 
-    cs_data_all.unique.statuses = cs_data_all.unique.statuses.filter((x,i,arr) => arr.indexOf(x) === i);
-    cs_data_all.unique.sites = cs_data_all.unique.sites.filter((x,i,arr) => arr.indexOf(x) === i);
-
-    window.scatterplots.all.all = scatterplot_config(cs_data_all, 'all');
-    cs_data_all.unique.sites.forEach((x)=>{
-        window.scatterplots.all[x] = scatterplot_config(cs_data_all, 'all', x);
-    });
-
     // Add 'Filter by' items
     $('#scatter-all-jumpdiv').empty();
     $('#scatter-all-jumpdiv').append('<a class="navigation__link scatter-all active" ' +
         'onclick="SwitchScatterPlot(`all`, `all`, this)">All sites</a>');
-    cs_data_all.unique.sites.forEach((x)=>{
+    window.scatterplots['all_jobs']._data.unique.sites.forEach((x)=>{
         $('#scatter-all-jumpdiv').append('<a class="navigation__link scatter-all" ' +
             'onclick="SwitchScatterPlot(`all`, `' + x + '`, this)">' + x + '</a>');
     });
@@ -763,8 +756,9 @@ function BuildDiagrams(data) {
 // Function to draw scatterplot
 // type variable is 'all'/'scouts'/'finished'/'failed'
 function SwitchScatterPlot(type, site, navlink){
-    let obj = window.scatterplots[type][site],
-        tab = (type === 'all') ? 'all' : 'small';
+    let vtype = (type === 'all') ? 'all_jobs' : type,
+        obj = window.scatterplots[vtype][site],
+        tab = (vtype === 'all_jobs') ? 'all' : 'small';
 
     Plotly.newPlot('status-profile-'+tab, obj.traces, obj.layout);
 
