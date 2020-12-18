@@ -60,14 +60,13 @@ window._job_status_colors = {
     unassigned: '#fc9272',
     failed: '#de2d26',
 
-    paused: '#969696'
+    closed: '#969696'
 };
 window._job_status_order = ['defined', 'pending', 'waiting', 'assigned', 'activated', 'sent', 'starting', 'running',
-    'holding', 'transferring', 'merging', 'finished', 'cancelled', 'unassigned', 'failed', 'paused'];
-
+    'holding', 'transferring', 'merging', 'finished', 'cancelled', 'unassigned', 'closed', 'failed', 'paused'];
 
 // List of statuses to be enabled on scatterplots
-window._profiling_statuses_enabled = ['defined', 'finished', 'merging', 'failed', 'running', 'activated'];
+window._profiling_statuses_enabled = ['defined', 'finished', 'merging', 'failed', 'running', 'activated', 'closed'];
 
 // Function to remove a specific item from an array
 Array.prototype.remove = function() {
@@ -651,8 +650,10 @@ function BuildDiagrams(data) {
             let //n = 0,
                 max_quantity = 20;
 
+            let difference = data.unique.statuses.filter(x => !window._job_status_order.includes(x));
+
             return {
-                traces: window._job_status_order.map(x => {
+                traces: window._job_status_order.concat(difference).map(x => {
                     let filtered = data.data.filter(y => ((y[2] === x) && (site === '' || y[4] === site))),
                         filtered_rows = [[]];
 
