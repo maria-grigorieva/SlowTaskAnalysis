@@ -134,6 +134,14 @@ def get_taskid_information(jeditaskid):
                 # If times are the same, return the cached result
                 if str(min_time) == contents['min_time'] and str(max_time) == contents['max_time']:
                     result = contents
+        # If not found - check saved json in a separate folder
+        else:
+            filename = 'json_saved/' + str(jeditaskid) + '.json'
+            if os.path.exists(filename):
+                # If there is, check time ranges
+                with open(filename, 'r') as infile:
+                    contents = json.load(infile)
+                    result = contents
 
         # If no result cached or it differs from the database, calculate it
         if result == {}:
@@ -496,7 +504,11 @@ def pre_failed(df):
         # v.drop(v[v['JOBSTATUS'] == 'failed'].index, inplace=True)
         v.rename(columns={"JOBSTATUS": "PRE-FAILED"}, inplace=True)
         # v['FINAL_STATUS'] = 'failed'
-        frames.append(v.iloc[[-2]])
+        try:
+            frames.append(v.iloc[[-2]])
+        except IndexError:
+            pass
+
     return pd.DataFrame() if not frames else pd.concat(frames)
 
 
