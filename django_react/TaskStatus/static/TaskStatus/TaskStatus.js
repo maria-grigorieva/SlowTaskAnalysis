@@ -34,6 +34,46 @@ window._task_status_colors = {
 
     paused: '#969696'
 };
+
+window._task_status_description = {
+    registered: 'The task information is inserted to the JEDI_Tasks table',
+    defined: 'All task parameters are properly defined',
+    assigning: 'The task brokerage is assigning the task to a cloud',
+    ready: 'The task is ready to generate jobs. New jobs are generated once computing resources become available.',
+    pending: 'The task has a temporary problem, e.g. there is no sites to assign jobs.',
+    scouting: 'The task is running scout jobs to collect job data',
+    scouted: 'All scout jobs were successfully finished',
+    running: 'The task is running jobs',
+    prepared: 'The task is ready to go to a final status',
+    done: 'All inputs of the task were successfully processed',
+    failed: 'All inputs of the task were failed',
+    finished: 'Some inputs of the task were successfully processed but others ' +
+        'were failed or not processed since the task was terminated',
+    aborting: 'The task is being killed',
+    aborted: 'The task is killed',
+    finishing: 'The task is forced to get finished',
+    topreprocess: 'Preprocess job is ready for the task',
+    preprocessing: 'Preprocess job is running for the task',
+    tobroken: 'The task is going to broken',
+    broken: 'The task is broken, e.g., the task definition is wrong',
+    toretry: 'The retry command was received for the task',
+    toincexec: 'The incexec command was received for the task',
+    rerefine: 'Task parameters are going to be changed for incremental execution',
+    paused: 'The task is paused and doesn\'t do anything until it is resumed',
+    throttled: 'The task is throttled to generate jobs since the largest attemptNr in the task is a multiple of 5. ' +
+        'The throttled period is 120 x int(max(attemptNr)/5)**2 minites',
+    exhausted: 'For production tasks, all reattempts were done but some inputs were still unsuccessful, ' +
+        'and the task is configured to go to this state instead of finished to wait for manual intervention ' +
+        'or timeout of 10 days. Also, if cpuTime of scouts jobs > 2x cpuTime of task definition, the task ' +
+        'goes to exhausted. For analysis tasks, if there are more than 5 scout jobs with short execution time ' +
+        '(< 4 min) and more than 1000 jobs are expected, they will go to exhausted to prevent automatic avalanche ' +
+        'since so many short jobs are problematic at grid sites. Analysis tasks in exhausted state can be retried ' +
+        'using pbook but it is better to change some parameters like nFilesPerJob to have longer execution time. ' +
+        'Also both production and analysis tasks will go to exhausted if they are timed-out while pending in ' +
+        'the brokerage.',
+    passed: 'The task is ready to go to a final state after manual intervention or timeout'
+};
+
 window._task_status_order = ['registered', 'defined', 'topreprocess', 'preprocessing', 'tobroken', 'assigning', 'ready',
     'pending', 'scouting', 'scouted', 'running', 'prepared', 'toabort', 'aborting', 'aborted', 'finishing', 'passed',
     'toretry', 'toincexec', 'rerefine', 'throttled', 'exhausted', 'broken', 'failed', 'done', 'finished', 'paused'];
@@ -54,16 +94,47 @@ window._job_status_colors = {
     merging: '#e778a3',
     transferring: '#980043',
 
+    throttled: '#e2bcad',
+
     finished: '#31a354',
 
     cancelled: '#dabdb0',
-    unassigned: '#fc9272',
+    //unassigned: '#fc9272',
     failed: '#de2d26',
 
     closed: '#969696'
 };
-window._job_status_order = ['defined', 'pending', 'waiting', 'assigned', 'activated', 'sent', 'starting', 'running',
-    'holding', 'transferring', 'merging', 'finished', 'cancelled', 'unassigned', 'closed', 'failed', 'paused'];
+
+window._job_status_description = {
+    pending: 'Job-record is injected to PandaDB by JEDI',
+    defined: 'Kicked to start by bamboo or JEDI',
+    waiting: 'Input files or software are not ready ',
+    assigned: 'dispatchDBlock is subscribed to site to transfer input files to T2 or' +
+        ' to prestage input files from T1 TAPE ',
+
+    activated: 'Waiting for pilot requests ',
+    sent: 'Sent to the pilot',
+    starting: 'The pilot is starting the job on a worker node. ' +
+        'For push mode - the job was retrieved by the pilot submitter, but did not start on the worker node yet. ',
+
+    running: 'Running on a worker node',
+    holding: 'Adding output files to datasets. Or waiting for job recovery ',
+    merging: 'Output files are being merged by merge jobs ',
+    transferring: 'Output files are moving to the final destination ',
+    throttled: 'Throttled to regulate WAN data access',
+
+    finished: 'Completed successfully',
+
+    cancelled: 'Manually killed',
+    //unassigned: '',
+    failed: 'Failed due to errors',
+
+    closed: 'Terminated by the system before completing the allocated workload. ' +
+        'E.g., killed to be reassigned to another site'
+};
+
+window._job_status_order = ['pending', 'defined', 'waiting', 'assigned', 'activated', 'sent', 'starting', 'running',
+    'holding', 'transferring', 'merging', 'throttled', 'finished', 'cancelled', 'closed', 'failed', 'paused'];
 
 // List of statuses to be enabled on scatterplots
 window._profiling_statuses_enabled = ['defined', 'finished', 'merging', 'failed', 'running', 'activated', 'closed'];
@@ -975,6 +1046,45 @@ function SwitchDiagram(type, user_approved = false, selector_changed = false){
 
     this._selector_ready = false;
     this._selector.val(clustering).trigger('change');
+}
+
+function CreateStatusesTable(){
+    let task_cells = Object.keys(window._task_status_colors).map(x =>
+            [x,
+                (window._task_status_description[x] !== undefined) ? window._task_status_description[x] : ''
+            ]),
+        job_cells = Object.keys(window._job_status_colors).map(x =>
+            [x,
+                (window._job_status_description[x] !== undefined) ? window._job_status_description[x] : ''
+            ]),
+        header = ['Task status', 'Description'].map((x, i) => {
+            return {
+                title: x,
+                className: (i === 0) ? 'firstCol' : ''
+            }
+        });
+
+    this._task_status_table = $('#statuses-tasks')
+        .addClass("hover")
+        .DataTable({
+            data: task_cells,
+            columns: header,
+            mark: true,
+            bAutoWidth: false,
+            dom: 'ABlfrtip',
+            buttons: ['copy', 'csv']
+        });
+
+        this._job_status_table = $('#statuses-jobs')
+        .addClass("hover")
+        .DataTable({
+            data: job_cells,
+            columns: header,
+            mark: true,
+            bAutoWidth: false,
+            dom: 'ABlfrtip',
+            buttons: ['copy', 'csv']
+        });
 }
 
 function ToggleBoldLines(){

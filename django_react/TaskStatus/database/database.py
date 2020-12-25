@@ -206,7 +206,7 @@ def get_taskid_information(jeditaskid):
             # Remove older files
             list_of_files = os.listdir(dirname)
             full_path = ["{0}/{1}".format(dirname, x) for x in list_of_files]
-            while len(next(os.walk(dirname))[2]) > 100:
+            while len(next(os.walk(dirname))[2]) > 500:
                 oldest_file = min(full_path, key=os.path.getctime)
                 full_path.remove(oldest_file)
                 os.remove(oldest_file)

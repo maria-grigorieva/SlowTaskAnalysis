@@ -22,6 +22,9 @@ from TaskStatus.database import database
 urlpatterns = [
     path('admin/', admin.site.urls),
 
+    # Task and job statuses description
+    path('statuses/', views.statuses),
+
     # Single task analysis
     path('task/', views.task_index),
     path('task/<int:jeditaskid>/', views.task_index_preselected),

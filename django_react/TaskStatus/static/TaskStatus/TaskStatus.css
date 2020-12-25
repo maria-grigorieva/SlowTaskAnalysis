@@ -221,7 +221,7 @@ body{
 }
 
 #slowest-tasks-list_wrapper .ui-button{
-		margin-bottom: 3px;
+	margin-bottom: 3px;
 	padding: 3px;
 }
 
@@ -587,6 +587,48 @@ input:checked + .slider:before {
 	border-top: 15px solid transparent;
 	border-bottom: 14px solid transparent;
 	top:0px;
+}
+
+/* Statuses */
+#statuses-contents {
+	display: flex;
+	overflow: auto;
+	height: calc(100% - 60px);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+#statuses-contents h1{
+	font-family: Source Code Pro, monospace;
+	text-align: center;
+	margin-bottom: 0px;
+}
+
+#statuses-contents > div{
+	padding: 5px;
+	width: 800px;
+}
+
+#statuses-contents .ui-button{
+	margin-bottom: 3px;
+	padding: 3px;
+}
+
+#statuses-contents .geDiagramContainer{
+	margin: auto;
+	height: 600px;
+	padding: 5px;
+}
+
+#statuses-contents .dataTables_wrapper{
+	margin: auto;
+	width: 600px;
+	padding: 5px;
+}
+
+#statuses-contents .dataTables_length{
+	margin-left: 15px;
+	margin-top: 3px;
 }
 
 /* not used :( */

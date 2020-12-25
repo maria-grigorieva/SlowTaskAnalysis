@@ -20,3 +20,9 @@ def duration_index(request):
     Renders a page asking to enter the dates for tasks analysis
     """
     return render(request, 'index-duration.html')
+
+def statuses(request):
+    """
+    Renders a page asking to enter the dates for tasks analysis
+    """
+    return render(request, 'statuses.html')
